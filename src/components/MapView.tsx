@@ -190,8 +190,14 @@ export const MapView: React.FC<MapViewProps> = ({
           'support-point': '🏢 Ponto de Apoio',
         }
 
+        const photoHtml = act.photo
+          ? `<div style="margin-bottom: 6px; border-radius: 6px; overflow: hidden; max-height: 120px; border: 1px solid #CBD5E1;">
+               <img src="/api/files/activities/${act.id}/${act.photo}" alt="Foto da Ação" style="width: 100%; height: 100px; object-fit: cover; display: block;" onerror="this.style.display='none'" />
+             </div>`
+          : ''
+
         core.bindPopup(`
-          <div style="font-family: Inter, sans-serif; min-width: 200px; padding: 2px;">
+          <div style="font-family: Inter, sans-serif; min-width: 210px; max-width: 260px; padding: 2px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
               <span style="font-size: 11px; font-weight: 700; background: #0F172A; color: #ffffff; padding: 2px 6px; border-radius: 4px;">
                 ${typeLabels[act.type] || act.type}
@@ -200,14 +206,16 @@ export const MapView: React.FC<MapViewProps> = ({
                 ★ Sentimento: ${act.sentiment}/5
               </span>
             </div>
+            ${photoHtml}
             <div style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 4px;">
               ${act.location_name || 'Localização de Campo'}
             </div>
             <div style="font-size: 11px; color: #475569; margin-bottom: 6px; line-height: 1.4;">
               "${act.notes || 'Sem observações adicionais.'}"
             </div>
-            <div style="font-size: 10px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 4px;">
-              Eleitores contatados: <strong>${act.voters_contacted || 1}</strong>
+            <div style="font-size: 10px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 4px; display: flex; justify-content: space-between;">
+              <span>Eleitores: <strong>${act.voters_contacted || 1}</strong></span>
+              <span>${act.expand?.user_id?.name ? `👤 ${act.expand.user_id.name.split(' ')[0]}` : ''}</span>
             </div>
           </div>
         `)

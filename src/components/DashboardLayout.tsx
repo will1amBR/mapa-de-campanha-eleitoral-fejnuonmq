@@ -12,6 +12,7 @@ import {
   Radio,
   ChevronDown,
   Building2,
+  TrendingUp,
   Menu,
   X,
 } from 'lucide-react'
@@ -45,6 +46,13 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     { to: '/dashboard', label: 'Dashboard Executiva', icon: LayoutDashboard },
     { to: '/map', label: 'Mapa ao Vivo & Equipe', icon: MapPin },
     { to: '/team', label: 'Equipe & Campo (PWA)', icon: Users },
+    {
+      to: '/team-performance',
+      label: 'Desempenho da Equipe',
+      icon: TrendingUp,
+      badge: 'Coord',
+      roles: ['admin', 'coordinator'],
+    },
     { to: '/support-points', label: 'Pontos de Apoio', icon: Building2 },
     { to: '/analysis', label: 'Análise Territorial (TSE/IBGE)', icon: PieChart },
     { to: '/ai-consultant', label: 'Estrategista IA', icon: Bot, highlight: true },
@@ -259,34 +267,44 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Navigation Links */}
           <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                      isActive
-                        ? item.highlight
-                          ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
-                          : 'bg-slate-800 text-white border-l-4 border-amber-500'
-                        : item.highlight
-                          ? 'text-amber-300 hover:bg-amber-500/10 hover:text-amber-200'
-                          : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-100'
-                    }`
-                  }
-                >
-                  <Icon className={`w-4 h-4 shrink-0 ${item.highlight ? 'text-current' : ''}`} />
-                  <span className="truncate">{item.label}</span>
-                  {item.highlight && (
-                    <Badge className="ml-auto bg-amber-400 text-slate-950 text-[9px] font-bold px-1.5 py-0 h-4 uppercase">
-                      IA
-                    </Badge>
-                  )}
-                </NavLink>
-              )
-            })}
+            {navItems
+              .filter((item) => !item.roles || (user?.role && item.roles.includes(user.role)))
+              .map((item) => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+                        isActive
+                          ? item.highlight
+                            ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
+                            : 'bg-slate-800 text-white border-l-4 border-amber-500'
+                          : item.highlight
+                            ? 'text-amber-300 hover:bg-amber-500/10 hover:text-amber-200'
+                            : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-100'
+                      }`
+                    }
+                  >
+                    <Icon className={`w-4 h-4 shrink-0 ${item.highlight ? 'text-current' : ''}`} />
+                    <span className="truncate">{item.label}</span>
+                    {item.highlight && (
+                      <Badge className="ml-auto bg-amber-400 text-slate-950 text-[9px] font-bold px-1.5 py-0 h-4 uppercase">
+                        IA
+                      </Badge>
+                    )}
+                    {item.badge && !item.highlight && (
+                      <Badge
+                        variant="outline"
+                        className="ml-auto text-[9px] border-slate-700 text-amber-400 px-1 py-0"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </NavLink>
+                )
+              })}
           </nav>
 
           {/* Bottom GPS Quick Action */}
@@ -330,26 +348,28 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                   </button>
                 </div>
                 <div className="mt-4 space-y-1">
-                  {navItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold ${
-                            isActive
-                              ? 'bg-amber-500 text-slate-950 font-bold'
-                              : 'text-slate-300 hover:bg-slate-800'
-                          }`
-                        }
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    )
-                  })}
+                  {navItems
+                    .filter((item) => !item.roles || (user?.role && item.roles.includes(user.role)))
+                    .map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold ${
+                              isActive
+                                ? 'bg-amber-500 text-slate-950 font-bold'
+                                : 'text-slate-300 hover:bg-slate-800'
+                            }`
+                          }
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      )
+                    })}
                 </div>
               </div>
 

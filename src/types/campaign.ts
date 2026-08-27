@@ -37,10 +37,33 @@ export interface Activity {
   sentiment: number // 1 to 5
   voters_contacted?: number
   location_name?: string
+  photo?: string
   created: string
   updated: string
   expand?: {
     user_id?: UserRecord
+    campaign_id?: Campaign
+  }
+}
+
+export type AlertStatus = 'active' | 'resolved' | 'dismissed'
+export type AlertSeverity = 'warning' | 'critical'
+
+export interface TerritoryAlert {
+  id: string
+  campaign_id: string
+  zone_territory: string
+  district_name?: string
+  days_inactive: number
+  status: AlertStatus
+  severity?: AlertSeverity
+  priority_score?: number
+  voters_count?: number
+  notes?: string
+  resolved_at?: string
+  created: string
+  updated: string
+  expand?: {
     campaign_id?: Campaign
   }
 }

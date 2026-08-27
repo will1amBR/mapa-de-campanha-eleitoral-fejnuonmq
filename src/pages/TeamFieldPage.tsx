@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
@@ -19,6 +19,9 @@ import {
   Sparkles,
   WifiOff,
   RefreshCw,
+  Image as ImageIcon,
+  X,
+  Eye,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 export const TeamFieldPage: React.FC = () => {
@@ -36,7 +40,6 @@ export const TeamFieldPage: React.FC = () => {
     isTracking,
     currentLocation,
     batteryLevel,
-    lastSync,
     gpsError,
     startTracking,
     stopTracking,
@@ -52,6 +55,18 @@ export const TeamFieldPage: React.FC = () => {
   const [locationName, setLocationName] = useState('')
   const [votersContacted, setVotersContacted] = useState<number>(20)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Photo upload states (Quick & Manual)
+  const [quickPhotoFile, setQuickPhotoFile] = useState<File | null>(null)
+  const [quickPhotoPreview, setQuickPhotoPreview] = useState<string | null>(null)
+  const quickFileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const [manualPhotoFile, setManualPhotoFile] = useState<File | null>(null)
+  const [manualPhotoPreview, setManualPhotoPreview] = useState<string | null>(null)
+  const manualFileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Photo preview modal
+  const [selectedPreviewImage, setSelectedPreviewImage] = useState<string | null>(null)
 
   // Manual retroactive entry form
   const [manualTime, setManualTime] = useState('')
@@ -78,6 +93,40 @@ export const TeamFieldPage: React.FC = () => {
     fetchMyActivities()
   }, [user, currentCampaign])
 
+  const handlePhotoSelect = (
+    file: File | undefined,
+    setFile: (f: File | null) => void,
+    setPreview: (p: string | null) => void,
+  ) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione um arquivo de imagem válido (JPG, PNG, WebP).')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('A foto não pode ultrapassar 5MB.')
+      return
+    }
+    setFile(file)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const clearQuickPhoto = () => {
+    setQuickPhotoFile(null)
+    setQuickPhotoPreview(null)
+    if (quickFileInputRef.current) quickFileInputRef.current.value = ''
+  }
+
+  const clearManualPhoto = () => {
+    setManualPhotoFile(null)
+    setManualPhotoPreview(null)
+    if (manualFileInputRef.current) manualFileInputRef.current.value = ''
+  }
+
   const handleQuickCheckin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentCampaign) {
@@ -90,21 +139,30 @@ export const TeamFieldPage: React.FC = () => {
       const lat = currentLocation ? currentLocation.lat : -23.5505 + (Math.random() - 0.5) * 0.02
       const lng = currentLocation ? currentLocation.lng : -46.6333 + (Math.random() - 0.5) * 0.02
 
-      await pb.collection('activities').create({
-        campaign_id: currentCampaign.id,
-        user_id: user?.id,
-        type: activityType,
-        lat,
-        lng,
-        notes: notes.trim() || `Check-in de ${activityType} realizado pela equipe de campo.`,
-        sentiment,
-        voters_contacted: votersContacted || 1,
-        location_name: locationName.trim() || 'Ponto de Campo SP',
-      })
+      const formData = new FormData()
+      formData.append('campaign_id', currentCampaign.id)
+      if (user?.id) formData.append('user_id', user.id)
+      formData.append('type', activityType)
+      formData.append('lat', String(lat))
+      formData.append('lng', String(lng))
+      formData.append(
+        'notes',
+        notes.trim() || `Check-in de ${activityType} realizado pela equipe de campo.`,
+      )
+      formData.append('sentiment', String(sentiment))
+      formData.append('voters_contacted', String(votersContacted || 1))
+      formData.append('location_name', locationName.trim() || 'Ponto de Campo SP')
+
+      if (quickPhotoFile) {
+        formData.append('photo', quickPhotoFile)
+      }
+
+      await pb.collection('activities').create(formData)
 
       toast.success('Check-in registrado com sucesso na inteligência eleitoral!')
       setNotes('')
       setLocationName('')
+      clearQuickPhoto()
       fetchMyActivities()
     } catch (err) {
       toast.error('Erro ao salvar check-in de campo')
@@ -123,24 +181,34 @@ export const TeamFieldPage: React.FC = () => {
 
     try {
       setIsSubmitting(true)
-      await pb.collection('activities').create({
-        campaign_id: currentCampaign.id,
-        user_id: user?.id,
-        type: activityType,
-        lat: manualLat,
-        lng: manualLng,
-        notes: notes.trim() || `Entrada manual retroativa (${manualTime || 'horário comercial'})`,
-        sentiment,
-        voters_contacted: votersContacted || 1,
-        location_name: locationName.trim() || 'Zona de difícil sinal',
-      })
+      const formData = new FormData()
+      formData.append('campaign_id', currentCampaign.id)
+      if (user?.id) formData.append('user_id', user.id)
+      formData.append('type', activityType)
+      formData.append('lat', String(manualLat))
+      formData.append('lng', String(manualLng))
+      formData.append(
+        'notes',
+        notes.trim() || `Entrada manual retroativa (${manualTime || 'horário comercial'})`,
+      )
+      formData.append('sentiment', String(sentiment))
+      formData.append('voters_contacted', String(votersContacted || 1))
+      formData.append('location_name', locationName.trim() || 'Zona de difícil sinal')
+
+      if (manualPhotoFile) {
+        formData.append('photo', manualPhotoFile)
+      }
+
+      await pb.collection('activities').create(formData)
 
       toast.success('Entrada manual salva e sincronizada!')
       setNotes('')
       setLocationName('')
+      clearManualPhoto()
       fetchMyActivities()
     } catch (err) {
       toast.error('Erro ao registrar entrada manual')
+      console.error(err)
     } finally {
       setIsSubmitting(false)
     }
@@ -203,7 +271,7 @@ export const TeamFieldPage: React.FC = () => {
             value="quick"
             className="font-bold text-xs sm:text-sm py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-950 shadow-sm"
           >
-            ⚡ Check-in Rápido com GPS
+            ⚡ Check-in Rápido com GPS & Foto
           </TabsTrigger>
           <TabsTrigger
             value="manual"
@@ -222,7 +290,7 @@ export const TeamFieldPage: React.FC = () => {
                 Campo
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Gera calor no mapa de conversão e alimenta a IA estratégica instantaneamente
+                Gera calor no mapa de conversão, anexa comprovação fotográfica e alimenta a IA
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
@@ -353,6 +421,77 @@ export const TeamFieldPage: React.FC = () => {
                   />
                 </div>
 
+                {/* Photo Upload Section with Live Preview */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                    Foto do Local / Evidência (Adesivaço, Faixa, Panfletagem)
+                  </Label>
+                  <input
+                    ref={quickFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) =>
+                      handlePhotoSelect(
+                        e.target.files?.[0],
+                        setQuickPhotoFile,
+                        setQuickPhotoPreview,
+                      )
+                    }
+                  />
+                  {quickPhotoPreview ? (
+                    <div className="relative rounded-xl border border-slate-200 p-2 bg-slate-50 flex items-center gap-4">
+                      <img
+                        src={quickPhotoPreview}
+                        alt="Preview"
+                        className="w-20 h-20 object-cover rounded-lg border border-slate-300 shadow-sm"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 truncate">
+                          {quickPhotoFile?.name || 'Foto selecionada'}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {quickPhotoFile ? `${(quickPhotoFile.size / 1024).toFixed(1)} KB` : ''} •
+                          Pronta para envio
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => quickFileInputRef.current?.click()}
+                            className="h-7 text-xs px-2"
+                          >
+                            Trocar Foto
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={clearQuickPhoto}
+                            className="h-7 text-xs px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          >
+                            <X className="w-3.5 h-3.5 mr-1" /> Remover
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => quickFileInputRef.current?.click()}
+                      className="p-4 border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-xl bg-slate-50 hover:bg-amber-50/30 text-center text-xs text-slate-600 cursor-pointer transition-colors"
+                    >
+                      <Camera className="w-6 h-6 mx-auto mb-1.5 text-amber-500" />
+                      <span className="font-semibold text-slate-800">
+                        Clique para tirar ou selecionar foto do local
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Formatos suportados: JPG, PNG ou WebP até 5MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* GPS Coordinates Feedback */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -396,7 +535,7 @@ export const TeamFieldPage: React.FC = () => {
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
                 Ideal para cadastrar ações realizadas em áreas rurais ou sem cobertura de dados
-                4G/5G
+                4G/5G com foto comprobatória
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
@@ -460,14 +599,75 @@ export const TeamFieldPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 text-center text-xs text-slate-500 cursor-pointer hover:bg-slate-100">
-                  <Camera className="w-6 h-6 mx-auto mb-1.5 text-slate-400" />
-                  <span className="font-semibold text-slate-700">
+                {/* Manual Photo Attachment with Preview */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                     Anexar Foto de Evidência / Comprovante
-                  </span>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    Formatos suportados: PNG, JPG até 5MB
-                  </p>
+                  </Label>
+                  <input
+                    ref={manualFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) =>
+                      handlePhotoSelect(
+                        e.target.files?.[0],
+                        setManualPhotoFile,
+                        setManualPhotoPreview,
+                      )
+                    }
+                  />
+                  {manualPhotoPreview ? (
+                    <div className="relative rounded-xl border border-slate-200 p-2 bg-slate-50 flex items-center gap-4">
+                      <img
+                        src={manualPhotoPreview}
+                        alt="Preview"
+                        className="w-20 h-20 object-cover rounded-lg border border-slate-300 shadow-sm"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 truncate">
+                          {manualPhotoFile?.name || 'Foto selecionada'}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {manualPhotoFile ? `${(manualPhotoFile.size / 1024).toFixed(1)} KB` : ''}{' '}
+                          • Pronta para envio
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => manualFileInputRef.current?.click()}
+                            className="h-7 text-xs px-2"
+                          >
+                            Trocar Foto
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={clearManualPhoto}
+                            className="h-7 text-xs px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          >
+                            <X className="w-3.5 h-3.5 mr-1" /> Remover
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => manualFileInputRef.current?.click()}
+                      className="p-4 border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/30 text-center text-xs text-slate-500 cursor-pointer transition-colors"
+                    >
+                      <Camera className="w-6 h-6 mx-auto mb-1.5 text-blue-500" />
+                      <span className="font-semibold text-slate-700">
+                        Clique para anexar foto de comprovante
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Formatos suportados: PNG, JPG ou WebP até 5MB
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -498,30 +698,90 @@ export const TeamFieldPage: React.FC = () => {
               pontuar no mapa!
             </div>
           ) : (
-            myActivities.map((act) => (
-              <div
-                key={act.id}
-                className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs"
-              >
-                <div>
-                  <div className="font-bold text-slate-800">{act.location_name || act.type}</div>
-                  <div className="text-slate-500 text-[11px] mt-0.5">"{act.notes}"</div>
-                  <div className="text-[10px] text-slate-400 mt-1">
-                    {new Date(act.created).toLocaleDateString('pt-BR')} às{' '}
-                    {new Date(act.created).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+            myActivities.map((act) => {
+              const photoUrl = act.photo ? pb.files.getURL(act, act.photo) : null
+
+              return (
+                <div
+                  key={act.id}
+                  className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {photoUrl ? (
+                      <div
+                        onClick={() => setSelectedPreviewImage(photoUrl)}
+                        className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-200 cursor-pointer group"
+                      >
+                        <img
+                          src={photoUrl}
+                          alt="Atividade"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                          <Eye className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center shrink-0 text-slate-400 font-bold">
+                        {act.type === 'door-to-door'
+                          ? '🚪'
+                          : act.type === 'flyering'
+                            ? '📄'
+                            : act.type === 'event'
+                              ? '🎤'
+                              : '🏢'}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-800 truncate">
+                        {act.location_name || act.type}
+                      </div>
+                      <div className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">
+                        "{act.notes}"
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-1">
+                        {new Date(act.created).toLocaleDateString('pt-BR')} às{' '}
+                        {new Date(act.created).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className="bg-amber-500/20 text-amber-700 text-xs font-bold">
+                      ★ {act.sentiment}/5
+                    </Badge>
                   </div>
                 </div>
-                <Badge className="bg-amber-500/20 text-amber-700 text-xs font-bold">
-                  ★ {act.sentiment}/5
-                </Badge>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>
+
+      {/* Full image preview dialog */}
+      <Dialog
+        open={!!selectedPreviewImage}
+        onOpenChange={(open) => !open && setSelectedPreviewImage(null)}
+      >
+        <DialogContent className="max-w-lg p-3 bg-slate-900 border-slate-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xs font-semibold text-slate-300">
+              Evidência de Atividade de Campo
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPreviewImage && (
+            <div className="rounded-lg overflow-hidden border border-slate-800 mt-2">
+              <img
+                src={selectedPreviewImage}
+                alt="Evidência"
+                className="w-full max-h-[70vh] object-contain bg-black"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

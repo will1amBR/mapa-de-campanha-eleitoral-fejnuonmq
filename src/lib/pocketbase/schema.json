@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T17:22:31.409Z",
+  "generatedAt": "2026-08-27T19:05:15.724Z",
   "collections": [
     {
       "name": "users",
@@ -203,6 +203,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "photo",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -437,6 +443,100 @@
       "indexes": [
         "CREATE INDEX idx_territory_zone ON territory_data (zone)",
         "CREATE INDEX idx_territory_ibge ON territory_data (ibge_code)"
+      ]
+    },
+    {
+      "name": "alerts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "zone_territory",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "district_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "days_inactive",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["active", "resolved", "dismissed"]
+        },
+        {
+          "name": "severity",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["warning", "critical"]
+        },
+        {
+          "name": "priority_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "voters_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resolved_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_alerts_campaign ON alerts (campaign_id, status)",
+        "CREATE INDEX idx_alerts_status ON alerts (status, created DESC)"
       ]
     }
   ]

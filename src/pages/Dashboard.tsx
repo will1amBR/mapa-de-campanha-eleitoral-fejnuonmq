@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { useCampaign } from '@/hooks/use-campaign'
 import { MapView } from '@/components/MapView'
-import type { Activity, SupportPoint, TeamLocation, TerritoryData } from '@/types/campaign'
+import type {
+  Activity,
+  SupportPoint,
+  TeamLocation,
+  TerritoryData,
+  TerritoryAlert,
+} from '@/types/campaign'
 import {
   Users,
   Target,
@@ -16,11 +22,29 @@ import {
   Calendar,
   Layers,
   Bot,
+  AlertTriangle,
+  BellRing,
+  Check,
+  XCircle,
+  Clock,
+  SlidersHorizontal,
+  RefreshCw,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 import {
   ResponsiveContainer,
   BarChart,
@@ -39,57 +63,137 @@ export const Dashboard: React.FC = () => {
   const [supportPoints, setSupportPoints] = useState<SupportPoint[]>([])
   const [teamLocations, setTeamLocations] = useState<TeamLocation[]>([])
   const [territories, setTerritories] = useState<TerritoryData[]>([])
+  const [alerts, setAlerts] = useState<TerritoryAlert[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!currentCampaign) return
-      try {
-        setLoading(true)
-        const [actRes, spRes, tlRes, terrRes] = await Promise.all([
-          pb.collection('activities').getFullList<Activity>({
-            filter: `campaign_id = "${currentCampaign.id}"`,
-            sort: '-created',
-            expand: 'user_id',
-          }),
-          pb.collection('support_points').getFullList<SupportPoint>({
-            filter: `campaign_id = "${currentCampaign.id}"`,
-          }),
-          pb.collection('team_locations').getFullList<TeamLocation>({
-            sort: '-updated',
-            expand: 'user_id',
-          }),
-          pb.collection('territory_data').getFullList<TerritoryData>({
-            sort: '-priority_score',
-          }),
-        ])
+  // Alerts configuration state
+  const [configOpen, setConfigOpen] = useState(false)
+  const [thresholdDays, setThresholdDays] = useState<number>(() => {
+    return parseInt(localStorage.getItem('estrategista_inactive_threshold_days') || '3', 10)
+  })
+  const [isScanning, setIsScanning] = useState(false)
 
-        setActivities(actRes)
-        setSupportPoints(spRes)
-        setTeamLocations(tlRes)
-        setTerritories(terrRes)
-      } catch (err) {
-        console.error('Error fetching dashboard data', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchAlerts = async () => {
+    if (!currentCampaign) return
+    try {
+      const list = await pb.collection('alerts').getFullList<TerritoryAlert>({
+        filter: `campaign_id = "${currentCampaign.id}" && status = "active"`,
+        sort: '-days_inactive,-created',
+      })
+      setAlerts(list)
+    } catch {
+      // ignore
     }
+  }
 
+  const fetchData = async () => {
+    if (!currentCampaign) return
+    try {
+      setLoading(true)
+      const [actRes, spRes, tlRes, terrRes, alertsRes] = await Promise.all([
+        pb.collection('activities').getFullList<Activity>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+          sort: '-created',
+          expand: 'user_id',
+        }),
+        pb.collection('support_points').getFullList<SupportPoint>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+        }),
+        pb.collection('team_locations').getFullList<TeamLocation>({
+          sort: '-updated',
+          expand: 'user_id',
+        }),
+        pb.collection('territory_data').getFullList<TerritoryData>({
+          sort: '-priority_score',
+        }),
+        pb.collection('alerts').getFullList<TerritoryAlert>({
+          filter: `campaign_id = "${currentCampaign.id}" && status = "active"`,
+          sort: '-days_inactive,-created',
+        }),
+      ])
+
+      setActivities(actRes)
+      setSupportPoints(spRes)
+      setTeamLocations(tlRes)
+      setTerritories(terrRes)
+      setAlerts(alertsRes)
+    } catch (err) {
+      console.error('Error fetching dashboard data', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchData()
 
-    // Subscribe to realtime updates for activities and locations
+    // Subscribe to realtime updates for activities, locations and alerts
     const unsubActivities = pb.collection('activities').subscribe('*', () => {
       fetchData()
     })
     const unsubLocations = pb.collection('team_locations').subscribe('*', () => {
       fetchData()
     })
+    const unsubAlerts = pb.collection('alerts').subscribe('*', () => {
+      fetchAlerts()
+    })
 
     return () => {
       unsubActivities.then((u) => u())
       unsubLocations.then((u) => u())
+      unsubAlerts.then((u) => u())
     }
   }, [currentCampaign])
+
+  const handleResolveAlert = async (alertId: string) => {
+    try {
+      await pb.collection('alerts').update(alertId, {
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+      })
+      toast.success('Alerta marcado como resolvido!')
+      fetchAlerts()
+    } catch (err) {
+      toast.error('Erro ao resolver alerta')
+    }
+  }
+
+  const handleDismissAlert = async (alertId: string) => {
+    try {
+      await pb.collection('alerts').update(alertId, {
+        status: 'dismissed',
+        resolved_at: new Date().toISOString(),
+      })
+      toast.info('Alerta dispensado')
+      fetchAlerts()
+    } catch (err) {
+      toast.error('Erro ao dispensar alerta')
+    }
+  }
+
+  const handleScanAlerts = async () => {
+    if (!currentCampaign) return
+    try {
+      setIsScanning(true)
+      localStorage.setItem('estrategista_inactive_threshold_days', thresholdDays.toString())
+      const res = await pb.send('/backend/v1/alerts/scan', {
+        method: 'POST',
+        body: {
+          campaign_id: currentCampaign.id,
+          inactive_threshold_days: thresholdDays,
+        },
+      })
+      toast.success(
+        `Varredura concluída! ${res.active_alerts_synced || 0} zonas sincronizadas com limite de ${thresholdDays} dias.`,
+      )
+      fetchAlerts()
+      setConfigOpen(false)
+    } catch (err) {
+      toast.error('Erro ao executar varredura de zonas inativas')
+    } finally {
+      setIsScanning(false)
+    }
+  }
 
   // Derived metrics
   const totalVotesContacted = useMemo(() => {
@@ -170,6 +274,214 @@ export const Dashboard: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Automated Inactive Zones Alerts Section */}
+      <Card className="border-amber-200/80 bg-gradient-to-r from-amber-50/50 via-white to-amber-50/30 shadow-sm overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 border-b border-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center">
+              <BellRing className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm sm:text-base font-bold text-slate-900">
+                  Alertas Automáticos de Zonas Inativas
+                </CardTitle>
+                <Badge
+                  className={`text-[10px] font-bold ${
+                    alerts.length > 0 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'
+                  }`}
+                >
+                  {alerts.length} {alerts.length === 1 ? 'zona em risco' : 'zonas em risco'}
+                </Badge>
+              </div>
+              <CardDescription className="text-xs text-slate-500">
+                Regiões prioritárias com alto eleitorado sem atividade de campo por mais de{' '}
+                {thresholdDays} dias
+              </CardDescription>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setConfigOpen(true)}
+              className="text-xs h-8 border-slate-200 hover:bg-slate-100 font-semibold"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 mr-1 text-slate-500" /> Configurar Limite (
+              {thresholdDays}d)
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleScanAlerts}
+              disabled={isScanning}
+              className="text-xs h-8 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isScanning ? 'animate-spin' : ''}`} />
+              {isScanning ? 'Varrendo...' : 'Escanear Agora'}
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-4 sm:p-5">
+          {alerts.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-500 bg-white rounded-xl border border-emerald-100 flex flex-col items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-1.5" />
+              <span className="font-bold text-slate-800 text-sm">
+                Todas as zonas prioritárias cobertas!
+              </span>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Nenhuma zona de alto potencial ultrapassou o limite de {thresholdDays} dias de
+                inatividade.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {alerts.map((alert) => {
+                const isCritical =
+                  alert.severity === 'critical' ||
+                  alert.days_inactive >= 4 ||
+                  (alert.priority_score || 0) >= 90
+
+                return (
+                  <div
+                    key={alert.id}
+                    className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                      isCritical
+                        ? 'bg-rose-50/70 border-rose-200 shadow-sm'
+                        : 'bg-amber-50/70 border-amber-200 shadow-sm'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <Badge
+                          className={`text-[10px] font-black uppercase ${
+                            isCritical
+                              ? 'bg-rose-600 text-white animate-pulse'
+                              : 'bg-amber-500 text-slate-950'
+                          }`}
+                        >
+                          {isCritical ? '🔴 Crítico' : '🟡 Atenção'}
+                        </Badge>
+
+                        <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {alert.days_inactive} dias inativo
+                        </span>
+                      </div>
+
+                      <h4 className="font-extrabold text-sm text-slate-900 leading-snug">
+                        {alert.zone_territory}
+                      </h4>
+                      {alert.district_name && (
+                        <p className="text-xs text-slate-500 font-medium mb-2">
+                          {alert.district_name}
+                        </p>
+                      )}
+
+                      <p className="text-xs text-slate-700 bg-white/70 p-2.5 rounded-lg border border-slate-200/50 mb-3 leading-relaxed">
+                        {alert.notes ||
+                          'Região com alta densidade eleitoral sem presença registrada de mobilizadores.'}
+                      </p>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 mb-3 px-1">
+                        <span>
+                          Eleitores:{' '}
+                          <strong>{(alert.voters_count || 150000).toLocaleString('pt-BR')}</strong>
+                        </span>
+                        <span>
+                          Score:{' '}
+                          <strong className="text-slate-800">
+                            {alert.priority_score || 85}/100
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
+                      <Button
+                        size="sm"
+                        onClick={() => handleResolveAlert(alert.id)}
+                        className="flex-1 h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" /> Resolver
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDismissAlert(alert.id)}
+                        className="h-7 text-xs text-slate-500 hover:text-slate-900 hover:bg-white/80"
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1" /> Dispensar
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Threshold Configuration Dialog */}
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="sm:max-w-md bg-white text-slate-900">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-amber-500" />
+              Configurar Alerta de Inatividade
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Defina o número de dias sem presença de campo para que o sistema emita alertas de
+              risco territorial.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-2">
+              <Label htmlFor="threshold" className="text-xs font-bold text-slate-700">
+                Limite de Dias Sem Atividade (Padrão: 3 dias)
+              </Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="threshold"
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={thresholdDays}
+                  onChange={(e) => setThresholdDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="text-sm font-bold"
+                />
+                <span className="text-xs font-medium text-slate-500">dias</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                O cron job executará diariamente no backend comparando o último check-in com este
+                intervalo.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfigOpen(false)}
+              className="text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleScanAlerts}
+              disabled={isScanning}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs"
+            >
+              {isScanning ? 'Atualizando...' : 'Salvar & Executar Varredura'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 4 KPI Animated Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -395,7 +707,7 @@ export const Dashboard: React.FC = () => {
                   return (
                     <div
                       key={act.id}
-                      className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/70 transition-colors space-y-2"
+                      className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/70 transition-colors space-y-2.5"
                     >
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-slate-800">{typeLabel}</span>
@@ -405,13 +717,29 @@ export const Dashboard: React.FC = () => {
                           ★ {act.sentiment}/5
                         </span>
                       </div>
+
+                      {act.photo && (
+                        <div className="relative rounded-lg overflow-hidden border border-slate-200 group">
+                          <img
+                            src={pb.files.getURL(act, act.photo)}
+                            alt="Registro de campo"
+                            className="w-full h-32 object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute bottom-1 right-1 bg-slate-950/70 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-xs">
+                            📷 Foto anexada
+                          </div>
+                        </div>
+                      )}
+
                       <div className="text-xs font-semibold text-slate-700">
                         {act.location_name || 'Região Metropolitana'}
                       </div>
                       <p className="text-xs text-slate-600 line-clamp-2">"{act.notes}"</p>
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px] text-slate-400">
-                        <span>👤 {act.expand?.user_id?.name || 'Agente de Campo'}</span>
-                        <span className="flex items-center gap-1">
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-[10px] text-slate-400">
+                        <span className="truncate max-w-[140px]">
+                          👤 {act.expand?.user_id?.name || 'Agente de Campo'}
+                        </span>
+                        <span className="flex items-center gap-1 shrink-0">
                           <Calendar className="w-3 h-3" />
                           {new Date(act.created).toLocaleTimeString([], {
                             hour: '2-digit',

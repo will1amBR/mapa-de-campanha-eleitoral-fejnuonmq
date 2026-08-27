@@ -12,6 +12,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Dashboard } from '@/pages/Dashboard'
 import { LiveMapPage } from '@/pages/LiveMapPage'
 import { TeamFieldPage } from '@/pages/TeamFieldPage'
+import { TeamPerformancePage } from '@/pages/TeamPerformancePage'
 import { TerritoryAnalysisPage } from '@/pages/TerritoryAnalysisPage'
 import { SupportPointsPage } from '@/pages/SupportPointsPage'
 import { AiConsultantPage } from '@/pages/AiConsultantPage'
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/map" element={<LiveMapPage />} />
               <Route path="/team" element={<TeamFieldPage />} />
+              <Route path="/team-performance" element={<TeamPerformancePage />} />
               <Route path="/support-points" element={<SupportPointsPage />} />
               <Route path="/analysis" element={<TerritoryAnalysisPage />} />
               <Route path="/ai-consultant" element={<AiConsultantPage />} />
