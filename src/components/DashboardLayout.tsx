@@ -45,24 +45,68 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
-  const navItems = [
-    { to: '/dashboard', label: 'Dashboard Executiva', icon: LayoutDashboard },
-    { to: '/candidates', label: '👥 Candidaturas SP', icon: Users },
-    { to: '/content-calendar', label: '📅 Calendário', icon: Calendar },
-    { to: '/campaign-tracking', label: '📊 Tracking', icon: BarChart3 },
-    { to: '/map', label: 'Mapa ao Vivo & Equipe', icon: MapPin },
-    { to: '/team', label: 'Equipe & Campo (PWA)', icon: Users },
+  interface NavItem {
+    to: string
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+    badge?: string
+    highlight?: boolean
+    roles?: string[]
+  }
+
+  interface NavGroup {
+    title: string
+    subtitle: string
+    items: NavItem[]
+  }
+
+  const navGroups: NavGroup[] = [
     {
-      to: '/team-performance',
-      label: 'Desempenho da Equipe',
-      icon: TrendingUp,
-      badge: 'Coord',
-      roles: ['admin', 'coordinator'],
+      title: '01 APOIADORES',
+      subtitle: 'Cadastro, indicação e relacionamento',
+      items: [
+        { to: '/dashboard', label: 'Captação & Métricas', icon: LayoutDashboard, badge: 'Aba 07' },
+        { to: '/candidates', label: 'Candidaturas SP (TSE)', icon: Users, badge: 'TSE' },
+        { to: '/support-points', label: 'Comitês & Apoio', icon: Building2, badge: 'Aba 05' },
+      ],
     },
-    { to: '/support-points', label: 'Pontos de Apoio', icon: Building2 },
-    { to: '/analysis', label: 'Análise Territorial (TSE/IBGE)', icon: PieChart },
-    { to: '/ai-consultant', label: 'Estrategista IA', icon: Bot, highlight: true },
-    { to: '/settings', label: 'Configurações', icon: Settings },
+    {
+      title: '02 EQUIPES',
+      subtitle: 'Responsáveis, membros e atividades',
+      items: [
+        { to: '/team', label: 'Equipes & Atividades', icon: Users, badge: 'Aba 08' },
+        {
+          to: '/team-performance',
+          label: 'Desempenho & GPS',
+          icon: TrendingUp,
+          badge: 'Coord',
+          roles: ['admin', 'coordinator'],
+        },
+      ],
+    },
+    {
+      title: '03 CAMPO',
+      subtitle: 'Rastreamento, trajetos e cobertura',
+      items: [
+        { to: '/map', label: 'Mapa Geral & Ao Vivo', icon: MapPin, badge: 'Aba 01/03' },
+        {
+          to: '/campaign-tracking',
+          label: 'Cobertura & UTM Tracking',
+          icon: BarChart3,
+          badge: 'Aba 04',
+        },
+        { to: '/content-calendar', label: 'Calendário de Redes', icon: Calendar, badge: 'Digital' },
+      ],
+    },
+    {
+      title: '04 TERRITÓRIO',
+      subtitle: 'Setores, pontos e leitura geográfica',
+      items: [
+        { to: '/analysis', label: 'Setores & Polígonos', icon: PieChart, badge: 'Aba 09' },
+        { to: '/ai-consultant', label: 'Estrategista IA', icon: Bot, highlight: true },
+        { to: '/settings', label: 'Configurações', icon: Settings },
+      ],
+    },
   ]
 
   return (
@@ -272,45 +316,65 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-            {navItems
-              .filter((item) => !item.roles || (user?.role && item.roles.includes(user.role)))
-              .map((item) => {
-                const Icon = item.icon
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                        isActive
-                          ? item.highlight
-                            ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
-                            : 'bg-slate-800 text-white border-l-4 border-amber-500'
-                          : item.highlight
-                            ? 'text-amber-300 hover:bg-amber-500/10 hover:text-amber-200'
-                            : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-100'
-                      }`
-                    }
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 ${item.highlight ? 'text-current' : ''}`} />
-                    <span className="truncate">{item.label}</span>
-                    {item.highlight && (
-                      <Badge className="ml-auto bg-amber-400 text-slate-950 text-[9px] font-bold px-1.5 py-0 h-4 uppercase">
-                        IA
-                      </Badge>
-                    )}
-                    {item.badge && !item.highlight && (
-                      <Badge
-                        variant="outline"
-                        className="ml-auto text-[9px] border-slate-700 text-amber-400 px-1 py-0"
-                      >
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </NavLink>
-                )
-              })}
+          <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto custom-scrollbar">
+            {navGroups.map((group, gIdx) => {
+              const visibleItems = group.items.filter(
+                (item) => !item.roles || (user?.role && item.roles.includes(user.role)),
+              )
+              if (visibleItems.length === 0) return null
+
+              return (
+                <div key={gIdx} className="space-y-1">
+                  <div className="px-2 pt-1">
+                    <div className="text-[10px] font-black tracking-wider text-amber-400/90 flex items-center justify-between uppercase">
+                      <span>{group.title}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    {visibleItems.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          className={({ isActive }) =>
+                            `flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all group ${
+                              isActive
+                                ? item.highlight
+                                  ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
+                                  : 'bg-slate-800/90 text-white border-l-2 border-amber-500 font-bold'
+                                : item.highlight
+                                  ? 'text-amber-300 hover:bg-amber-500/10 hover:text-amber-200'
+                                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100'
+                            }`
+                          }
+                        >
+                          <Icon
+                            className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${
+                              item.highlight
+                                ? 'text-current'
+                                : 'text-slate-400 group-hover:text-white'
+                            }`}
+                          />
+                          <span className="truncate flex-1 text-left">{item.label}</span>
+                          {item.highlight && (
+                            <Badge className="bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1.5 py-0 h-4 uppercase shrink-0">
+                              IA
+                            </Badge>
+                          )}
+                          {item.badge && !item.highlight && (
+                            <span className="text-[9px] font-medium text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/60 shrink-0">
+                              {item.badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </nav>
 
           {/* Bottom GPS Quick Action */}
@@ -353,29 +417,40 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="mt-4 space-y-1">
-                  {navItems
-                    .filter((item) => !item.roles || (user?.role && item.roles.includes(user.role)))
-                    .map((item) => {
-                      const Icon = item.icon
-                      return (
-                        <NavLink
-                          key={item.to}
-                          to={item.to}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold ${
-                              isActive
-                                ? 'bg-amber-500 text-slate-950 font-bold'
-                                : 'text-slate-300 hover:bg-slate-800'
-                            }`
-                          }
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{item.label}</span>
-                        </NavLink>
-                      )
-                    })}
+                <div className="mt-4 space-y-4 overflow-y-auto max-h-[70vh]">
+                  {navGroups.map((group, idx) => {
+                    const visibleItems = group.items.filter(
+                      (item) => !item.roles || (user?.role && item.roles.includes(user.role)),
+                    )
+                    if (visibleItems.length === 0) return null
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="text-[10px] font-black text-amber-400 px-2 uppercase">
+                          {group.title}
+                        </div>
+                        {visibleItems.map((item) => {
+                          const Icon = item.icon
+                          return (
+                            <NavLink
+                              key={item.to}
+                              to={item.to}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold ${
+                                  isActive
+                                    ? 'bg-amber-500 text-slate-950 font-bold'
+                                    : 'text-slate-300 hover:bg-slate-800'
+                                }`
+                              }
+                            >
+                              <Icon className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{item.label}</span>
+                            </NavLink>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
