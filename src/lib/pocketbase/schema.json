@@ -1,0 +1,443 @@
+{
+  "generatedAt": "2026-08-27T17:22:31.409Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "coordinator", "field_team"]
+        },
+        {
+          "name": "current_campaign",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "campaigns"
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "campaigns",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "candidate_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "party",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ibge_city_code",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "target_votes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "activities",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["door-to-door", "event", "flyering", "support-point"]
+        },
+        {
+          "name": "lat",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lng",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sentiment",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "voters_contacted",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "location_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_activities_campaign ON activities (campaign_id, created DESC)",
+        "CREATE INDEX idx_activities_user ON activities (user_id)"
+      ]
+    },
+    {
+      "name": "team_locations",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "lat",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "lng",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "battery",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "accuracy",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_team_locations_user ON team_locations (user_id, created DESC)"]
+    },
+    {
+      "name": "support_points",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["office", "committee", "partner"]
+        },
+        {
+          "name": "lat",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "lng",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "contact",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_support_points_camp ON support_points (campaign_id)"]
+    },
+    {
+      "name": "territory_data",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "ibge_code",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "zone",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "district_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "voters_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "demographics_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historical_votes_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "priority_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_territory_zone ON territory_data (zone)",
+        "CREATE INDEX idx_territory_ibge ON territory_data (ibge_code)"
+      ]
+    }
+  ]
+}

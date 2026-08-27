@@ -1,0 +1,9 @@
+injectWorkspacePackages: false
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - date-fns@4.4.0
+  - baseline-browser-mapping@2.10.35
+  - electron-to-chromium@1.5.370
