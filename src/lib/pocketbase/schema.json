@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T22:26:56.299Z",
+  "generatedAt": "2026-08-27T22:30:47.207Z",
   "collections": [
     {
       "name": "users",
@@ -29,30 +29,21 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "admin",
-            "coordinator",
-            "field_team"
-          ]
+          "selectValues": ["admin", "coordinator", "field_team"]
         },
         {
           "name": "current_campaign",
@@ -119,19 +110,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []
@@ -166,12 +152,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "door-to-door",
-            "event",
-            "flyering",
-            "support-point"
-          ]
+          "selectValues": ["door-to-door", "event", "flyering", "support-point"]
         },
         {
           "name": "lat",
@@ -214,19 +195,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "photo",
@@ -306,24 +282,17 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_team_locations_user ON team_locations (user_id, created DESC)"
-      ]
+      "indexes": ["CREATE INDEX idx_team_locations_user ON team_locations (user_id, created DESC)"]
     },
     {
       "name": "support_points",
@@ -354,11 +323,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "office",
-            "committee",
-            "partner"
-          ]
+          "selectValues": ["office", "committee", "partner"]
         },
         {
           "name": "lat",
@@ -395,24 +360,17 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_support_points_camp ON support_points (campaign_id)"
-      ]
+      "indexes": ["CREATE INDEX idx_support_points_camp ON support_points (campaign_id)"]
     },
     {
       "name": "territory_data",
@@ -472,19 +430,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": [
@@ -533,21 +486,14 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "active",
-            "resolved",
-            "dismissed"
-          ]
+          "selectValues": ["active", "resolved", "dismissed"]
         },
         {
           "name": "severity",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "warning",
-            "critical"
-          ]
+          "selectValues": ["warning", "critical"]
         },
         {
           "name": "priority_score",
@@ -578,24 +524,549 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": [
         "CREATE INDEX idx_alerts_campaign ON alerts (campaign_id, status)",
         "CREATE INDEX idx_alerts_status ON alerts (status, created DESC)"
+      ]
+    },
+    {
+      "name": "candidates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "tse_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "election_year",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "uf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "city_code",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "city_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "candidate_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "candidate_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "social_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "position",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "party",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "coalition",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "occupation",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "gender",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "education",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "marital_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "age_range",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_reelection",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_candidates_tse_id ON candidates (tse_id)",
+        "CREATE INDEX idx_candidates_city ON candidates (city_name)",
+        "CREATE INDEX idx_candidates_party ON candidates (party)",
+        "CREATE INDEX idx_candidates_position ON candidates (position)",
+        "CREATE INDEX idx_candidates_campaign ON candidates (campaign_id)"
+      ]
+    },
+    {
+      "name": "scheduled_posts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "scheduled_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "instagram",
+            "facebook",
+            "tiktok",
+            "youtube",
+            "twitter",
+            "linkedin",
+            "whatsapp"
+          ]
+        },
+        {
+          "name": "media_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["image", "video", "carousel", "text", "link", "stories", "reels"]
+        },
+        {
+          "name": "caption",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "media_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_audience",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objective",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["engagement", "conversion", "awareness", "mobilization", "event"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["draft", "scheduled", "published", "cancelled"]
+        },
+        {
+          "name": "published_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clicks",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "shares",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "comments",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_scheduled_posts_camp ON scheduled_posts (campaign_id, scheduled_at)",
+        "CREATE INDEX idx_scheduled_posts_status ON scheduled_posts (status)"
+      ]
+    },
+    {
+      "name": "utm_visits",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "utm_source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_medium",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_campaign",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_content",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_term",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "landing_page",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visitor_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "referrer",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "converted",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversion_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_utm_visits_camp ON utm_visits (campaign_id)",
+        "CREATE INDEX idx_utm_visits_source ON utm_visits (utm_source)",
+        "CREATE INDEX idx_utm_visits_visitor ON utm_visits (visitor_id)"
+      ]
+    },
+    {
+      "name": "ad_campaigns",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "platform",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["meta_ads", "google_ads", "tiktok_ads"]
+        },
+        {
+          "name": "external_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "budget",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "spent",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clicks",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ctr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpc",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cost_per_conversion",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["active", "paused", "ended"]
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_ad_campaigns_camp ON ad_campaigns (campaign_id)",
+        "CREATE INDEX idx_ad_campaigns_status ON ad_campaigns (status)"
       ]
     }
   ]

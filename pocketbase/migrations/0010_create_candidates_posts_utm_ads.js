@@ -1,223 +1,260 @@
 migrate(
   (app) => {
+    // 1. Get or create campaigns reference
     const campaignsCol = app.findCollectionByNameOrId('campaigns')
-
-    // 1. candidates collection
-    const candidates = new Collection({
-      name: 'candidates',
-      type: 'base',
-      listRule: "@request.auth.id != ''",
-      viewRule: "@request.auth.id != ''",
-      createRule: "@request.auth.id != ''",
-      updateRule: "@request.auth.id != ''",
-      deleteRule: "@request.auth.id != ''",
-      fields: [
-        {
-          name: 'campaign_id',
-          type: 'relation',
-          collectionId: campaignsCol.id,
-          cascadeDelete: false,
-          maxSelect: 1,
-        },
-        { name: 'tse_id', type: 'text' },
-        { name: 'election_year', type: 'text' },
-        { name: 'uf', type: 'text' },
-        { name: 'city_code', type: 'text' },
-        { name: 'city_name', type: 'text' },
-        { name: 'candidate_number', type: 'text' },
-        { name: 'candidate_name', type: 'text' },
-        { name: 'social_name', type: 'text' },
-        { name: 'cpf', type: 'text' },
-        { name: 'position', type: 'text' },
-        { name: 'party', type: 'text' },
-        { name: 'coalition', type: 'text' },
-        { name: 'status', type: 'text' },
-        { name: 'occupation', type: 'text' },
-        { name: 'gender', type: 'text' },
-        { name: 'education', type: 'text' },
-        { name: 'marital_status', type: 'text' },
-        { name: 'age_range', type: 'text' },
-        { name: 'is_reelection', type: 'bool' },
-        { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
-        { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
-      ],
-      indexes: [
-        'CREATE INDEX idx_candidates_tse_id ON candidates (tse_id)',
-        'CREATE INDEX idx_candidates_city ON candidates (city_name)',
-        'CREATE INDEX idx_candidates_party ON candidates (party)',
-        'CREATE INDEX idx_candidates_position ON candidates (position)',
-        'CREATE INDEX idx_candidates_campaign ON candidates (campaign_id)',
-      ],
-    })
-    app.save(candidates)
-
-    // 2. scheduled_posts collection
-    const scheduledPosts = new Collection({
-      name: 'scheduled_posts',
-      type: 'base',
-      listRule: "@request.auth.id != ''",
-      viewRule: "@request.auth.id != ''",
-      createRule: "@request.auth.id != ''",
-      updateRule: "@request.auth.id != ''",
-      deleteRule: "@request.auth.id != ''",
-      fields: [
-        {
-          name: 'campaign_id',
-          type: 'relation',
-          required: true,
-          collectionId: campaignsCol.id,
-          cascadeDelete: true,
-          maxSelect: 1,
-        },
-        { name: 'title', type: 'text', required: true },
-        { name: 'scheduled_at', type: 'date', required: true },
-        {
-          name: 'platform',
-          type: 'select',
-          required: true,
-          values: ['instagram', 'facebook', 'tiktok', 'youtube', 'twitter', 'linkedin', 'whatsapp'],
-          maxSelect: 1,
-        },
-        {
-          name: 'media_type',
-          type: 'select',
-          required: true,
-          values: ['image', 'video', 'carousel', 'text', 'link', 'stories', 'reels'],
-          maxSelect: 1,
-        },
-        { name: 'caption', type: 'text' },
-        { name: 'media_url', type: 'text' },
-        { name: 'target_audience', type: 'text' },
-        {
-          name: 'objective',
-          type: 'select',
-          required: true,
-          values: ['engagement', 'conversion', 'awareness', 'mobilization', 'event'],
-          maxSelect: 1,
-        },
-        {
-          name: 'status',
-          type: 'select',
-          required: true,
-          values: ['draft', 'scheduled', 'published', 'cancelled'],
-          maxSelect: 1,
-        },
-        { name: 'published_at', type: 'date' },
-        { name: 'impressions', type: 'number', min: 0 },
-        { name: 'clicks', type: 'number', min: 0 },
-        { name: 'shares', type: 'number', min: 0 },
-        { name: 'comments', type: 'number', min: 0 },
-        { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
-        { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
-      ],
-      indexes: [
-        'CREATE INDEX idx_scheduled_posts_camp ON scheduled_posts (campaign_id, scheduled_at)',
-        'CREATE INDEX idx_scheduled_posts_status ON scheduled_posts (status)',
-      ],
-    })
-    app.save(scheduledPosts)
-
-    // 3. utm_visits collection (createRule is public "" so anonymous visits can be tracked)
-    const utmVisits = new Collection({
-      name: 'utm_visits',
-      type: 'base',
-      listRule: "@request.auth.id != ''",
-      viewRule: "@request.auth.id != ''",
-      createRule: '',
-      updateRule: "@request.auth.id != ''",
-      deleteRule: "@request.auth.id != ''",
-      fields: [
-        {
-          name: 'campaign_id',
-          type: 'relation',
-          collectionId: campaignsCol.id,
-          cascadeDelete: false,
-          maxSelect: 1,
-        },
-        { name: 'utm_source', type: 'text' },
-        { name: 'utm_medium', type: 'text' },
-        { name: 'utm_campaign', type: 'text' },
-        { name: 'utm_content', type: 'text' },
-        { name: 'utm_term', type: 'text' },
-        { name: 'landing_page', type: 'text' },
-        { name: 'visitor_id', type: 'text' },
-        { name: 'ip_hash', type: 'text' },
-        { name: 'user_agent', type: 'text' },
-        { name: 'referrer', type: 'text' },
-        { name: 'converted', type: 'bool' },
-        { name: 'conversion_type', type: 'text' },
-        { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
-        { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
-      ],
-      indexes: [
-        'CREATE INDEX idx_utm_visits_camp ON utm_visits (campaign_id)',
-        'CREATE INDEX idx_utm_visits_source ON utm_visits (utm_source)',
-        'CREATE INDEX idx_utm_visits_visitor ON utm_visits (visitor_id)',
-      ],
-    })
-    app.save(utmVisits)
-
-    // 4. ad_campaigns collection
-    const adCampaigns = new Collection({
-      name: 'ad_campaigns',
-      type: 'base',
-      listRule: "@request.auth.id != ''",
-      viewRule: "@request.auth.id != ''",
-      createRule: "@request.auth.id != ''",
-      updateRule: "@request.auth.id != ''",
-      deleteRule: "@request.auth.id != ''",
-      fields: [
-        {
-          name: 'campaign_id',
-          type: 'relation',
-          required: true,
-          collectionId: campaignsCol.id,
-          cascadeDelete: true,
-          maxSelect: 1,
-        },
-        {
-          name: 'platform',
-          type: 'select',
-          required: true,
-          values: ['meta_ads', 'google_ads', 'tiktok_ads'],
-          maxSelect: 1,
-        },
-        { name: 'external_id', type: 'text' },
-        { name: 'name', type: 'text', required: true },
-        { name: 'budget', type: 'number', min: 0 },
-        { name: 'spent', type: 'number', min: 0 },
-        { name: 'impressions', type: 'number', min: 0 },
-        { name: 'clicks', type: 'number', min: 0 },
-        { name: 'ctr', type: 'number' },
-        { name: 'cpc', type: 'number' },
-        { name: 'conversions', type: 'number', min: 0 },
-        { name: 'cost_per_conversion', type: 'number' },
-        {
-          name: 'status',
-          type: 'select',
-          required: true,
-          values: ['active', 'paused', 'ended'],
-          maxSelect: 1,
-        },
-        { name: 'start_date', type: 'date' },
-        { name: 'end_date', type: 'date' },
-        { name: 'notes', type: 'text' },
-        { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
-        { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
-      ],
-      indexes: [
-        'CREATE INDEX idx_ad_campaigns_camp ON ad_campaigns (campaign_id)',
-        'CREATE INDEX idx_ad_campaigns_status ON ad_campaigns (status)',
-      ],
-    })
-    app.save(adCampaigns)
-
-    // Seed realistic candidacies from São Paulo (TSE 2024 representative records)
-    // plus link one to the default campaign if available
+    let defaultCamp = null
     try {
-      const defaultCampaign = app.findFirstRecordByData('campaigns', 'party', 'MDB')
-      const candidatesCol = app.findCollectionByNameOrId('candidates')
+      defaultCamp = app.findFirstRecordByData('campaigns', 'party', 'PSD - 55')
+    } catch (_) {
+      try {
+        const records = app.findRecordsByFilter('campaigns', '', '-created', 1, 0)
+        if (records && records.length > 0) defaultCamp = records[0]
+      } catch (_) {}
+    }
 
+    const defaultCampId = defaultCamp ? defaultCamp.id : null
+
+    // 2. candidates collection
+    let candidatesCol
+    try {
+      candidatesCol = app.findCollectionByNameOrId('candidates')
+    } catch (_) {
+      candidatesCol = new Collection({
+        name: 'candidates',
+        type: 'base',
+        listRule: "@request.auth.id != ''",
+        viewRule: "@request.auth.id != ''",
+        createRule: "@request.auth.id != ''",
+        updateRule: "@request.auth.id != ''",
+        deleteRule: "@request.auth.id != ''",
+        fields: [
+          {
+            name: 'campaign_id',
+            type: 'relation',
+            collectionId: campaignsCol.id,
+            cascadeDelete: false,
+            maxSelect: 1,
+          },
+          { name: 'tse_id', type: 'text' },
+          { name: 'election_year', type: 'text' },
+          { name: 'uf', type: 'text' },
+          { name: 'city_code', type: 'text' },
+          { name: 'city_name', type: 'text' },
+          { name: 'candidate_number', type: 'text' },
+          { name: 'candidate_name', type: 'text' },
+          { name: 'social_name', type: 'text' },
+          { name: 'cpf', type: 'text' },
+          { name: 'position', type: 'text' },
+          { name: 'party', type: 'text' },
+          { name: 'coalition', type: 'text' },
+          { name: 'status', type: 'text' },
+          { name: 'occupation', type: 'text' },
+          { name: 'gender', type: 'text' },
+          { name: 'education', type: 'text' },
+          { name: 'marital_status', type: 'text' },
+          { name: 'age_range', type: 'text' },
+          { name: 'is_reelection', type: 'bool' },
+          { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+          { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+        ],
+        indexes: [
+          'CREATE INDEX idx_candidates_tse_id ON candidates (tse_id)',
+          'CREATE INDEX idx_candidates_city ON candidates (city_name)',
+          'CREATE INDEX idx_candidates_party ON candidates (party)',
+          'CREATE INDEX idx_candidates_position ON candidates (position)',
+          'CREATE INDEX idx_candidates_campaign ON candidates (campaign_id)',
+        ],
+      })
+      app.save(candidatesCol)
+    }
+
+    // 3. scheduled_posts collection
+    let scheduledPostsCol
+    try {
+      scheduledPostsCol = app.findCollectionByNameOrId('scheduled_posts')
+    } catch (_) {
+      scheduledPostsCol = new Collection({
+        name: 'scheduled_posts',
+        type: 'base',
+        listRule: "@request.auth.id != ''",
+        viewRule: "@request.auth.id != ''",
+        createRule: "@request.auth.id != ''",
+        updateRule: "@request.auth.id != ''",
+        deleteRule: "@request.auth.id != ''",
+        fields: [
+          {
+            name: 'campaign_id',
+            type: 'relation',
+            required: true,
+            collectionId: campaignsCol.id,
+            cascadeDelete: true,
+            maxSelect: 1,
+          },
+          { name: 'title', type: 'text', required: true },
+          { name: 'scheduled_at', type: 'date', required: true },
+          {
+            name: 'platform',
+            type: 'select',
+            required: true,
+            values: [
+              'instagram',
+              'facebook',
+              'tiktok',
+              'youtube',
+              'twitter',
+              'linkedin',
+              'whatsapp',
+            ],
+            maxSelect: 1,
+          },
+          {
+            name: 'media_type',
+            type: 'select',
+            required: true,
+            values: ['image', 'video', 'carousel', 'text', 'link', 'stories', 'reels'],
+            maxSelect: 1,
+          },
+          { name: 'caption', type: 'text' },
+          { name: 'media_url', type: 'text' },
+          { name: 'target_audience', type: 'text' },
+          {
+            name: 'objective',
+            type: 'select',
+            required: true,
+            values: ['engagement', 'conversion', 'awareness', 'mobilization', 'event'],
+            maxSelect: 1,
+          },
+          {
+            name: 'status',
+            type: 'select',
+            required: true,
+            values: ['draft', 'scheduled', 'published', 'cancelled'],
+            maxSelect: 1,
+          },
+          { name: 'published_at', type: 'date' },
+          { name: 'impressions', type: 'number', min: 0 },
+          { name: 'clicks', type: 'number', min: 0 },
+          { name: 'shares', type: 'number', min: 0 },
+          { name: 'comments', type: 'number', min: 0 },
+          { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+          { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+        ],
+        indexes: [
+          'CREATE INDEX idx_scheduled_posts_camp ON scheduled_posts (campaign_id, scheduled_at)',
+          'CREATE INDEX idx_scheduled_posts_status ON scheduled_posts (status)',
+        ],
+      })
+      app.save(scheduledPostsCol)
+    }
+
+    // 4. utm_visits collection
+    let utmVisitsCol
+    try {
+      utmVisitsCol = app.findCollectionByNameOrId('utm_visits')
+    } catch (_) {
+      utmVisitsCol = new Collection({
+        name: 'utm_visits',
+        type: 'base',
+        listRule: "@request.auth.id != ''",
+        viewRule: "@request.auth.id != ''",
+        createRule: '',
+        updateRule: "@request.auth.id != ''",
+        deleteRule: "@request.auth.id != ''",
+        fields: [
+          {
+            name: 'campaign_id',
+            type: 'relation',
+            collectionId: campaignsCol.id,
+            cascadeDelete: false,
+            maxSelect: 1,
+          },
+          { name: 'utm_source', type: 'text' },
+          { name: 'utm_medium', type: 'text' },
+          { name: 'utm_campaign', type: 'text' },
+          { name: 'utm_content', type: 'text' },
+          { name: 'utm_term', type: 'text' },
+          { name: 'landing_page', type: 'text' },
+          { name: 'visitor_id', type: 'text' },
+          { name: 'ip_hash', type: 'text' },
+          { name: 'user_agent', type: 'text' },
+          { name: 'referrer', type: 'text' },
+          { name: 'converted', type: 'bool' },
+          { name: 'conversion_type', type: 'text' },
+          { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+          { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+        ],
+        indexes: [
+          'CREATE INDEX idx_utm_visits_camp ON utm_visits (campaign_id)',
+          'CREATE INDEX idx_utm_visits_source ON utm_visits (utm_source)',
+          'CREATE INDEX idx_utm_visits_visitor ON utm_visits (visitor_id)',
+        ],
+      })
+      app.save(utmVisitsCol)
+    }
+
+    // 5. ad_campaigns collection
+    let adCampaignsCol
+    try {
+      adCampaignsCol = app.findCollectionByNameOrId('ad_campaigns')
+    } catch (_) {
+      adCampaignsCol = new Collection({
+        name: 'ad_campaigns',
+        type: 'base',
+        listRule: "@request.auth.id != ''",
+        viewRule: "@request.auth.id != ''",
+        createRule: "@request.auth.id != ''",
+        updateRule: "@request.auth.id != ''",
+        deleteRule: "@request.auth.id != ''",
+        fields: [
+          {
+            name: 'campaign_id',
+            type: 'relation',
+            required: true,
+            collectionId: campaignsCol.id,
+            cascadeDelete: true,
+            maxSelect: 1,
+          },
+          {
+            name: 'platform',
+            type: 'select',
+            required: true,
+            values: ['meta_ads', 'google_ads', 'tiktok_ads'],
+            maxSelect: 1,
+          },
+          { name: 'external_id', type: 'text' },
+          { name: 'name', type: 'text', required: true },
+          { name: 'budget', type: 'number', min: 0 },
+          { name: 'spent', type: 'number', min: 0 },
+          { name: 'impressions', type: 'number', min: 0 },
+          { name: 'clicks', type: 'number', min: 0 },
+          { name: 'ctr', type: 'number' },
+          { name: 'cpc', type: 'number' },
+          { name: 'conversions', type: 'number', min: 0 },
+          { name: 'cost_per_conversion', type: 'number' },
+          {
+            name: 'status',
+            type: 'select',
+            required: true,
+            values: ['active', 'paused', 'ended'],
+            maxSelect: 1,
+          },
+          { name: 'start_date', type: 'date' },
+          { name: 'end_date', type: 'date' },
+          { name: 'notes', type: 'text' },
+          { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+          { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+        ],
+        indexes: [
+          'CREATE INDEX idx_ad_campaigns_camp ON ad_campaigns (campaign_id)',
+          'CREATE INDEX idx_ad_campaigns_status ON ad_campaigns (status)',
+        ],
+      })
+      app.save(adCampaignsCol)
+    }
+
+    // 6. Resilient Seed for candidates
+    try {
+      const candidatesTargetCol = app.findCollectionByNameOrId('candidates')
       const seedCandidates = [
         {
           tse_id: '250001912831',
@@ -227,11 +264,12 @@ migrate(
           city_name: 'SÃO PAULO',
           candidate_number: '15',
           candidate_name: 'RICARDO LUIS REIS NUNES',
-          social_name: '',
+          social_name: 'RICARDO NUNES',
           cpf: '***.482.918-**',
           position: 'Prefeito',
           party: 'MDB',
-          coalition: 'MDB / PL / PP / PSD / REPUBLICANOS / PODE / AVANTE / SOLIDARIEDADE / PRD / MOBILIZA / AGIR',
+          coalition:
+            'MDB / PL / PP / PSD / REPUBLICANOS / PODE / AVANTE / SOLIDARIEDADE / PRD / MOBILIZA / AGIR',
           status: 'Deferido',
           occupation: 'Empresário',
           gender: 'MASCULINO',
@@ -239,7 +277,7 @@ migrate(
           marital_status: 'CASADO(A)',
           age_range: '55 a 59 anos',
           is_reelection: true,
-          campaign_id: defaultCampaign?.id || null,
+          campaign_id: defaultCampId,
         },
         {
           tse_id: '250001928491',
@@ -249,7 +287,7 @@ migrate(
           city_name: 'SÃO PAULO',
           candidate_number: '50',
           candidate_name: 'GUILHERME CASTRO BOULOS',
-          social_name: '',
+          social_name: 'GUILHERME BOULOS',
           cpf: '***.194.888-**',
           position: 'Prefeito',
           party: 'PSOL',
@@ -271,7 +309,7 @@ migrate(
           city_name: 'SÃO PAULO',
           candidate_number: '44',
           candidate_name: 'JOSÉ LUIZ DATENA',
-          social_name: '',
+          social_name: 'DATENA',
           cpf: '***.602.118-**',
           position: 'Prefeito',
           party: 'PSDB',
@@ -286,24 +324,46 @@ migrate(
           campaign_id: null,
         },
         {
-          tse_id: '250001948123',
+          tse_id: '250002049112',
           election_year: '2024',
           uf: 'SP',
           city_code: '3550308',
           city_name: 'SÃO PAULO',
-          candidate_number: '30',
-          candidate_name: 'MARINA HELOU BASTOS',
-          social_name: 'MARINA HELOU',
-          cpf: '***.723.448-**',
+          candidate_number: '28',
+          candidate_name: 'PABLO HENRIQUE COSTA MARÇAL',
+          social_name: 'PABLO MARÇAL',
+          cpf: '***.341.228-**',
           position: 'Prefeito',
-          party: 'REDE',
-          coalition: 'FEDERAÇÃO PSOL REDE',
+          party: 'PRTB',
+          coalition: 'PARTIDO ISOLADO',
           status: 'Deferido',
-          occupation: 'Administrador',
-          gender: 'FEMININO',
+          occupation: 'Empresário',
+          gender: 'MASCULINO',
           education: 'SUPERIOR COMPLETO',
           marital_status: 'CASADO(A)',
           age_range: '35 a 39 anos',
+          is_reelection: false,
+          campaign_id: null,
+        },
+        {
+          tse_id: '250002051289',
+          election_year: '2024',
+          uf: 'SP',
+          city_code: '3550308',
+          city_name: 'SÃO PAULO',
+          candidate_number: '40',
+          candidate_name: 'TABATA CLAUDIA AMARAL DE PONTES',
+          social_name: 'TABATA AMARAL',
+          cpf: '***.819.678-**',
+          position: 'Prefeito',
+          party: 'PSB',
+          coalition: 'PSB / FEDERAÇÃO PSDB CIDADANIA',
+          status: 'Deferido',
+          occupation: 'Cientista Político',
+          gender: 'FEMININO',
+          education: 'SUPERIOR COMPLETO',
+          marital_status: 'SOLTEIRO(A)',
+          age_range: '30 a 34 anos',
           is_reelection: false,
           campaign_id: null,
         },
@@ -313,21 +373,21 @@ migrate(
           uf: 'SP',
           city_code: '3550308',
           city_name: 'SÃO PAULO',
-          candidate_number: '15000',
-          candidate_name: 'ANA BEATRIZ CARVALHO MENDONÇA',
-          social_name: 'DRA. BIA MENDONÇA',
+          candidate_number: '55055',
+          candidate_name: 'LUCIANA ALBUQUERQUE CARDOSO',
+          social_name: 'LUCIANA ALBUQUERQUE',
           cpf: '***.812.338-**',
-          position: 'Vereador',
-          party: 'MDB',
-          coalition: 'PARTIDO ISOLADO',
+          position: 'Prefeito',
+          party: 'PSD',
+          coalition: 'PSD / MDB / REPUBLICANOS',
           status: 'Deferido',
           occupation: 'Médico',
           gender: 'FEMININO',
           education: 'SUPERIOR COMPLETO',
-          marital_status: 'SOLTEIRO(A)',
+          marital_status: 'CASADO(A)',
           age_range: '45 a 49 anos',
           is_reelection: false,
-          campaign_id: defaultCampaign?.id || null,
+          campaign_id: defaultCampId,
         },
         {
           tse_id: '250001962344',
@@ -335,12 +395,12 @@ migrate(
           uf: 'SP',
           city_code: '3550308',
           city_name: 'SÃO PAULO',
-          candidate_number: '15555',
+          candidate_number: '55123',
           candidate_name: 'CARLOS EDUARDO SILVA SANTOS',
           social_name: 'PROFESSOR CARLINHOS',
           cpf: '***.334.908-**',
           position: 'Vereador',
-          party: 'MDB',
+          party: 'PSD',
           coalition: 'PARTIDO ISOLADO',
           status: 'Deferido',
           occupation: 'Professor de Ensino Médio',
@@ -349,7 +409,7 @@ migrate(
           marital_status: 'CASADO(A)',
           age_range: '50 a 54 anos',
           is_reelection: true,
-          campaign_id: defaultCampaign?.id || null,
+          campaign_id: defaultCampId,
         },
         {
           tse_id: '250001978219',
@@ -418,28 +478,6 @@ migrate(
           campaign_id: null,
         },
         {
-          tse_id: '250001997812',
-          election_year: '2024',
-          uf: 'SP',
-          city_code: '3548500',
-          city_name: 'SANTOS',
-          candidate_number: '40',
-          candidate_name: 'ROSEMARY DE CÁSSIA CORRÊA',
-          social_name: 'DELEGADA ROSE',
-          cpf: '***.445.898-**',
-          position: 'Prefeito',
-          party: 'PSB',
-          coalition: 'PSB / PT / PCdoB / PV / PDT',
-          status: 'Deferido',
-          occupation: 'Policial Civil',
-          gender: 'FEMININO',
-          education: 'SUPERIOR COMPLETO',
-          marital_status: 'SOLTEIRO(A)',
-          age_range: '70 a 74 anos',
-          is_reelection: false,
-          campaign_id: null,
-        },
-        {
           tse_id: '250002001948',
           election_year: '2024',
           uf: 'SP',
@@ -459,28 +497,6 @@ migrate(
           marital_status: 'CASADO(A)',
           age_range: '45 a 49 anos',
           is_reelection: true,
-          campaign_id: null,
-        },
-        {
-          tse_id: '250002014902',
-          election_year: '2024',
-          uf: 'SP',
-          city_code: '3549904',
-          city_name: 'SÃO JOSÉ DOS CAMPOS',
-          candidate_number: '22',
-          candidate_name: 'EDUARDO CURY',
-          social_name: '',
-          cpf: '***.781.008-**',
-          position: 'Prefeito',
-          party: 'PL',
-          coalition: 'PL / NOVO / DC',
-          status: 'Deferido',
-          occupation: 'Engenheiro',
-          gender: 'MASCULINO',
-          education: 'SUPERIOR COMPLETO',
-          marital_status: 'CASADO(A)',
-          age_range: '60 a 64 anos',
-          is_reelection: false,
           campaign_id: null,
         },
         {
@@ -528,50 +544,6 @@ migrate(
           campaign_id: null,
         },
         {
-          tse_id: '250002049112',
-          election_year: '2024',
-          uf: 'SP',
-          city_code: '3550308',
-          city_name: 'SÃO PAULO',
-          candidate_number: '28',
-          candidate_name: 'PABLO HENRIQUE COSTA MARÇAL',
-          social_name: 'PABLO MARÇAL',
-          cpf: '***.341.228-**',
-          position: 'Prefeito',
-          party: 'PRTB',
-          coalition: 'PARTIDO ISOLADO',
-          status: 'Deferido',
-          occupation: 'Empresário',
-          gender: 'MASCULINO',
-          education: 'SUPERIOR COMPLETO',
-          marital_status: 'CASADO(A)',
-          age_range: '35 a 39 anos',
-          is_reelection: false,
-          campaign_id: null,
-        },
-        {
-          tse_id: '250002051289',
-          election_year: '2024',
-          uf: 'SP',
-          city_code: '3550308',
-          city_name: 'SÃO PAULO',
-          candidate_number: '40',
-          candidate_name: 'TABATA CLAUDIA AMARAL DE PONTES',
-          social_name: 'TABATA AMARAL',
-          cpf: '***.819.678-**',
-          position: 'Prefeito',
-          party: 'PSB',
-          coalition: 'PSB / FEDERAÇÃO PSDB CIDADANIA',
-          status: 'Deferido',
-          occupation: 'Cientista Político',
-          gender: 'FEMININO',
-          education: 'SUPERIOR COMPLETO',
-          marital_status: 'SOLTEIRO(A)',
-          age_range: '30 a 34 anos',
-          is_reelection: false,
-          campaign_id: null,
-        },
-        {
           tse_id: '250002062310',
           election_year: '2024',
           uf: 'SP',
@@ -594,50 +566,6 @@ migrate(
           campaign_id: null,
         },
         {
-          tse_id: '250002073145',
-          election_year: '2024',
-          uf: 'SP',
-          city_code: '3548708',
-          city_name: 'SÃO BERNARDO DO CAMPO',
-          candidate_number: '44',
-          candidate_name: 'ALEX MANENTE',
-          social_name: '',
-          cpf: '***.672.338-**',
-          position: 'Prefeito',
-          party: 'CIDADANIA',
-          coalition: 'FEDERAÇÃO PSDB CIDADANIA / PSD / MDB / REPUBLICANOS / PP / SOLIDARIEDADE',
-          status: 'Deferido',
-          occupation: 'Advogado',
-          gender: 'MASCULINO',
-          education: 'SUPERIOR COMPLETO',
-          marital_status: 'CASADO(A)',
-          age_range: '45 a 49 anos',
-          is_reelection: false,
-          campaign_id: null,
-        },
-        {
-          tse_id: '250002084920',
-          election_year: '2024',
-          uf: 'SP',
-          city_code: '3538709',
-          city_name: 'PIRACICABA',
-          candidate_number: '22',
-          candidate_name: 'ALEX DA MADALENA',
-          social_name: 'ALEX MADALENA',
-          cpf: '***.198.348-**',
-          position: 'Prefeito',
-          party: 'PL',
-          coalition: 'PL / NOVO / DC',
-          status: 'Deferido',
-          occupation: 'Empresário',
-          gender: 'MASCULINO',
-          education: 'SUPERIOR COMPLETO',
-          marital_status: 'CASADO(A)',
-          age_range: '45 a 49 anos',
-          is_reelection: false,
-          campaign_id: null,
-        },
-        {
           tse_id: '250002095111',
           election_year: '2024',
           uf: 'SP',
@@ -645,7 +573,7 @@ migrate(
           city_name: 'RIBEIRÃO PRETO',
           candidate_number: '44',
           candidate_name: 'RICARDO SILVA',
-          social_name: '',
+          social_name: 'RICARDO SILVA',
           cpf: '***.901.238-**',
           position: 'Prefeito',
           party: 'PSD',
@@ -705,34 +633,37 @@ migrate(
         },
       ]
 
-      seedCandidates.forEach((cand) => {
+      for (let i = 0; i < seedCandidates.length; i++) {
+        const cand = seedCandidates[i]
         try {
           app.findFirstRecordByData('candidates', 'tse_id', cand.tse_id)
         } catch (_) {
-          const r = new Record(candidatesCol)
-          Object.entries(cand).forEach(([k, v]) => {
-            if (v !== undefined) r.set(k, v)
+          const r = new Record(candidatesTargetCol)
+          Object.keys(cand).forEach((k) => {
+            if (cand[k] !== undefined && cand[k] !== null) {
+              r.set(k, cand[k])
+            }
           })
           app.save(r)
         }
-      })
-    } catch (e) {
-      console.log('Candidate seed notice:', e)
+      }
+    } catch (err) {
+      console.log('Candidates seed error:', err)
     }
 
-    // Seed sample scheduled_posts
-    try {
-      const defaultCampaign = app.findFirstRecordByData('campaigns', 'party', 'MDB')
-      if (defaultCampaign) {
+    // 7. Resilient Seed for scheduled_posts
+    if (defaultCampId) {
+      try {
         const postsCol = app.findCollectionByNameOrId('scheduled_posts')
         const samplePosts = [
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             title: 'Lançamento do Plano de Mobilidade Urbana',
             scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 1).toISOString(),
             platform: 'instagram',
             media_type: 'carousel',
-            caption: 'Mais corredores de ônibus e tarifa zero nos fins de semana! Conheça as propostas para o trânsito da nossa capital.',
+            caption:
+              'Mais corredores de ônibus e tarifa zero nos fins de semana! Conheça as propostas para o trânsito da nossa capital.',
             media_url: 'https://img.usecurling.com/p/800/800?q=transit&color=amber',
             target_audience: 'Eleitores 25-45 anos, Zona Leste e Sul',
             objective: 'engagement',
@@ -743,12 +674,13 @@ migrate(
             comments: 0,
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             title: 'Vídeo Manifesto: Saúde nos Bairros',
             scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
             platform: 'youtube',
             media_type: 'video',
-            caption: 'Nossa prioridade absoluta é zerar as filas do SUS nos postos de saúde de São Paulo.',
+            caption:
+              'Nossa prioridade absoluta é zerar as filas do SUS nos postos de saúde de São Paulo.',
             media_url: 'https://img.usecurling.com/p/1280/720?q=hospital&color=blue',
             target_audience: 'Famílias, idosos e profissionais da saúde',
             objective: 'awareness',
@@ -759,7 +691,7 @@ migrate(
             comments: 0,
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             title: 'Card WhatsApp: Chamada para o Comício de Sábado',
             scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
             platform: 'whatsapp',
@@ -775,7 +707,7 @@ migrate(
             comments: 0,
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             title: 'Post Passado: Balanço da Caminhada em Santo Amaro',
             scheduled_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
             platform: 'instagram',
@@ -798,25 +730,22 @@ migrate(
             app.findFirstRecordByData('scheduled_posts', 'title', post.title)
           } catch (_) {
             const r = new Record(postsCol)
-            Object.entries(post).forEach(([k, v]) => {
-              if (v !== undefined) r.set(k, v)
+            Object.keys(post).forEach((k) => {
+              if (post[k] !== undefined && post[k] !== null) r.set(k, post[k])
             })
             app.save(r)
           }
         })
+      } catch (err) {
+        console.log('Posts seed error:', err)
       }
-    } catch (e) {
-      console.log('Posts seed notice:', e)
-    }
 
-    // Seed sample utm_visits and ad_campaigns
-    try {
-      const defaultCampaign = app.findFirstRecordByData('campaigns', 'party', 'MDB')
-      if (defaultCampaign) {
+      // 8. Resilient Seed for ad_campaigns
+      try {
         const adCol = app.findCollectionByNameOrId('ad_campaigns')
         const sampleAds = [
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             platform: 'meta_ads',
             external_id: 'act_982341029',
             name: 'Meta - Impulsionamento Vídeo Propostas Saúde',
@@ -834,7 +763,7 @@ migrate(
             notes: 'Excelente performance no público 35-55 anos Zona Leste.',
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             platform: 'google_ads',
             external_id: 'goog_5548123',
             name: 'Google Search - Palavras-chave Eleição SP 2024',
@@ -852,7 +781,7 @@ migrate(
             notes: 'Palavras "propostas prefeitura SP" e "plano de governo" com alto CTR.',
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             platform: 'tiktok_ads',
             external_id: 'tt_1029384',
             name: 'TikTok - Juventude & Primeiro Voto',
@@ -876,18 +805,22 @@ migrate(
             app.findFirstRecordByData('ad_campaigns', 'name', ad.name)
           } catch (_) {
             const r = new Record(adCol)
-            Object.entries(ad).forEach(([k, v]) => {
-              if (v !== undefined) r.set(k, v)
+            Object.keys(ad).forEach((k) => {
+              if (ad[k] !== undefined && ad[k] !== null) r.set(k, ad[k])
             })
             app.save(r)
           }
         })
+      } catch (err) {
+        console.log('Ad campaigns seed error:', err)
+      }
 
-        // Seed sample utm_visits
+      // 9. Resilient Seed for utm_visits
+      try {
         const utmCol = app.findCollectionByNameOrId('utm_visits')
         const sampleVisits = [
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             utm_source: 'instagram',
             utm_medium: 'social',
             utm_campaign: 'lancamento-junho-2026',
@@ -902,7 +835,7 @@ migrate(
             conversion_type: 'volunteer',
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             utm_source: 'facebook',
             utm_medium: 'cpc',
             utm_campaign: 'lancamento-junho-2026',
@@ -917,7 +850,7 @@ migrate(
             conversion_type: 'signup',
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             utm_source: 'google',
             utm_medium: 'cpc',
             utm_campaign: 'busca-propostas',
@@ -932,7 +865,7 @@ migrate(
             conversion_type: '',
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             utm_source: 'whatsapp',
             utm_medium: 'referral',
             utm_campaign: 'disparo-liderancas',
@@ -947,7 +880,7 @@ migrate(
             conversion_type: 'event_rsvp',
           },
           {
-            campaign_id: defaultCampaign.id,
+            campaign_id: defaultCampId,
             utm_source: 'tiktok',
             utm_medium: 'social',
             utm_campaign: 'juventude-2024',
@@ -968,15 +901,15 @@ migrate(
             app.findFirstRecordByData('utm_visits', 'visitor_id', visit.visitor_id)
           } catch (_) {
             const r = new Record(utmCol)
-            Object.entries(visit).forEach(([k, v]) => {
-              if (v !== undefined) r.set(k, v)
+            Object.keys(visit).forEach((k) => {
+              if (visit[k] !== undefined && visit[k] !== null) r.set(k, visit[k])
             })
             app.save(r)
           }
         })
+      } catch (err) {
+        console.log('UTM visits seed error:', err)
       }
-    } catch (e) {
-      console.log('UTM/Ads seed notice:', e)
     }
   },
   (app) => {

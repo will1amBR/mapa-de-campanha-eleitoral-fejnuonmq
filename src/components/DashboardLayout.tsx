@@ -13,6 +13,9 @@ import {
   ChevronDown,
   Building2,
   TrendingUp,
+  Calendar,
+  BarChart3,
+  UserCheck,
   Menu,
   X,
 } from 'lucide-react'
@@ -44,6 +47,9 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard Executiva', icon: LayoutDashboard },
+    { to: '/candidates', label: '👥 Candidaturas SP', icon: Users },
+    { to: '/content-calendar', label: '📅 Calendário', icon: Calendar },
+    { to: '/campaign-tracking', label: '📊 Tracking', icon: BarChart3 },
     { to: '/map', label: 'Mapa ao Vivo & Equipe', icon: MapPin },
     { to: '/team', label: 'Equipe & Campo (PWA)', icon: Users },
     {

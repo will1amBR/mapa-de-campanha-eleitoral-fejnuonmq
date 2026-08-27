@@ -130,3 +130,122 @@ export interface TerritoryData {
   created: string
   updated: string
 }
+
+// 1. Candidate Type (TSE)
+export interface Candidate {
+  id: string
+  campaign_id?: string
+  tse_id: string
+  election_year: string
+  uf: string
+  city_code: string
+  city_name: string
+  candidate_number: string
+  candidate_name: string
+  social_name?: string
+  cpf: string
+  position: string
+  party: string
+  coalition?: string
+  status: string
+  occupation?: string
+  gender?: string
+  education?: string
+  marital_status?: string
+  age_range?: string
+  is_reelection: boolean
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
+
+// 2. Scheduled Post Type
+export type PostPlatform =
+  | 'instagram'
+  | 'facebook'
+  | 'tiktok'
+  | 'youtube'
+  | 'twitter'
+  | 'linkedin'
+  | 'whatsapp'
+
+export type PostMediaType = 'image' | 'video' | 'carousel' | 'text' | 'link' | 'stories' | 'reels'
+
+export type PostObjective = 'engagement' | 'conversion' | 'awareness' | 'mobilization' | 'event'
+
+export type PostStatus = 'draft' | 'scheduled' | 'published' | 'cancelled'
+
+export interface ScheduledPost {
+  id: string
+  campaign_id: string
+  title: string
+  scheduled_at: string
+  platform: PostPlatform
+  media_type: PostMediaType
+  caption?: string
+  media_url?: string
+  target_audience?: string
+  objective: PostObjective
+  status: PostStatus
+  published_at?: string
+  impressions?: number
+  clicks?: number
+  shares?: number
+  comments?: number
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
+
+// 3. UTM Visit and Attribution
+export interface UtmVisit {
+  id: string
+  campaign_id?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_content?: string
+  utm_term?: string
+  landing_page?: string
+  visitor_id?: string
+  ip_hash?: string
+  user_agent?: string
+  referrer?: string
+  converted: boolean
+  conversion_type?: string
+  created: string
+  updated: string
+}
+
+// 4. Ad Campaign
+export type AdPlatform = 'meta_ads' | 'google_ads' | 'tiktok_ads'
+export type AdStatus = 'active' | 'paused' | 'ended'
+
+export interface AdCampaign {
+  id: string
+  campaign_id: string
+  platform: AdPlatform
+  external_id?: string
+  name: string
+  budget?: number
+  spent?: number
+  impressions?: number
+  clicks?: number
+  ctr?: number
+  cpc?: number
+  conversions?: number
+  cost_per_conversion?: number
+  status: AdStatus
+  start_date?: string
+  end_date?: string
+  notes?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}

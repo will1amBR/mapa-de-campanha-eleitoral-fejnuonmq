@@ -17,6 +17,11 @@ import { TerritoryAnalysisPage } from '@/pages/TerritoryAnalysisPage'
 import { SupportPointsPage } from '@/pages/SupportPointsPage'
 import { AiConsultantPage } from '@/pages/AiConsultantPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { CandidatesPage } from '@/pages/CandidatesPage'
+import { ContentCalendarPage } from '@/pages/ContentCalendarPage'
+import { CampaignTrackingPage } from '@/pages/CampaignTrackingPage'
+import { useUtmTracking } from '@/hooks/use-utm-tracking'
+import { useCampaign } from '@/hooks/use-campaign'
 
 // Auth Pages
 import { LoginPage } from '@/pages/LoginPage'
@@ -27,11 +32,18 @@ import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage'
 import NotFound from '@/pages/NotFound'
 
+const UtmListener: React.FC = () => {
+  const { currentCampaign } = useCampaign()
+  useUtmTracking(currentCampaign?.id)
+  return null
+}
+
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
       <CampaignProvider>
         <TooltipProvider>
+          <UtmListener />
           <Toaster />
           <Sonner position="top-right" richColors />
           <Routes>
@@ -47,6 +59,9 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/candidates" element={<CandidatesPage />} />
+              <Route path="/content-calendar" element={<ContentCalendarPage />} />
+              <Route path="/campaign-tracking" element={<CampaignTrackingPage />} />
               <Route path="/map" element={<LiveMapPage />} />
               <Route path="/team" element={<TeamFieldPage />} />
               <Route path="/team-performance" element={<TeamPerformancePage />} />

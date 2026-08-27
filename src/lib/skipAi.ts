@@ -72,10 +72,7 @@ interface SseBlock {
   data: string
 }
 
-async function* readSseBlocks(
-  response: Response,
-  signal?: AbortSignal,
-): AsyncGenerator<SseBlock> {
+async function* readSseBlocks(response: Response, signal?: AbortSignal): AsyncGenerator<SseBlock> {
   if (!response.body) return
   const reader = response.body.getReader()
   // Wire abort directly into the reader. reader.cancel(reason) makes
