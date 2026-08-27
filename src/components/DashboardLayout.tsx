@@ -18,6 +18,7 @@ import {
   UserCheck,
   Menu,
   X,
+  Trophy,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
@@ -75,6 +76,12 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       subtitle: 'Responsáveis, membros e atividades',
       items: [
         { to: '/team', label: 'Equipes & Atividades', icon: Users, badge: 'Aba 08' },
+        {
+          to: '/ranking',
+          label: 'Ranking & Gamificação',
+          icon: Trophy,
+          badge: 'Top 3',
+        },
         {
           to: '/team-performance',
           label: 'Desempenho & GPS',

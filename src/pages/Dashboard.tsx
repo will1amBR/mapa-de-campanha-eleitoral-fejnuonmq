@@ -11,7 +11,9 @@ import type {
   TerritoryAlert,
   ScheduledPost,
   Candidate,
+  UserRecord,
 } from '@/types/campaign'
+import { computeGamificationLeaderboard, type MemberGamificationStats } from '@/lib/gamification'
 import {
   Users,
   Target,
@@ -39,6 +41,10 @@ import {
   PieChart as PieChartIcon,
   QrCode,
   Compass,
+  Trophy,
+  Award,
+  Crown,
+  MapPin,
 } from 'lucide-react'
 import { OnboardingWizard } from '@/components/OnboardingWizard'
 import {
@@ -85,6 +91,7 @@ export const Dashboard: React.FC = () => {
   const [alerts, setAlerts] = useState<TerritoryAlert[]>([])
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([])
   const [linkedCandidates, setLinkedCandidates] = useState<Candidate[]>([])
+  const [teamUsers, setTeamUsers] = useState<UserRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   // Onboarding Wizard modal state
@@ -132,35 +139,39 @@ export const Dashboard: React.FC = () => {
     if (!currentCampaign) return
     try {
       setLoading(true)
-      const [actRes, spRes, tlRes, terrRes, alertsRes, postsRes, candRes] = await Promise.all([
-        pb.collection('activities').getFullList<Activity>({
-          filter: `campaign_id = "${currentCampaign.id}"`,
-          sort: '-created',
-          expand: 'user_id',
-        }),
-        pb.collection('support_points').getFullList<SupportPoint>({
-          filter: `campaign_id = "${currentCampaign.id}"`,
-        }),
-        pb.collection('team_locations').getFullList<TeamLocation>({
-          sort: '-updated',
-          expand: 'user_id',
-        }),
-        pb.collection('territory_data').getFullList<TerritoryData>({
-          sort: '-priority_score',
-        }),
-        pb.collection('alerts').getFullList<TerritoryAlert>({
-          filter: `campaign_id = "${currentCampaign.id}" && status = "active"`,
-          sort: '-days_inactive,-created',
-        }),
-        pb.collection('scheduled_posts').getFullList<ScheduledPost>({
-          filter: `campaign_id = "${currentCampaign.id}"`,
-          sort: 'scheduled_at',
-        }),
-        pb.collection('candidates').getFullList<Candidate>({
-          filter: `campaign_id = "${currentCampaign.id}"`,
-          sort: 'candidate_number',
-        }),
-      ])
+      const [actRes, spRes, tlRes, terrRes, alertsRes, postsRes, candRes, usersRes] =
+        await Promise.all([
+          pb.collection('activities').getFullList<Activity>({
+            filter: `campaign_id = "${currentCampaign.id}"`,
+            sort: '-created',
+            expand: 'user_id',
+          }),
+          pb.collection('support_points').getFullList<SupportPoint>({
+            filter: `campaign_id = "${currentCampaign.id}"`,
+          }),
+          pb.collection('team_locations').getFullList<TeamLocation>({
+            sort: '-updated',
+            expand: 'user_id',
+          }),
+          pb.collection('territory_data').getFullList<TerritoryData>({
+            sort: '-priority_score',
+          }),
+          pb.collection('alerts').getFullList<TerritoryAlert>({
+            filter: `campaign_id = "${currentCampaign.id}" && status = "active"`,
+            sort: '-days_inactive,-created',
+          }),
+          pb.collection('scheduled_posts').getFullList<ScheduledPost>({
+            filter: `campaign_id = "${currentCampaign.id}"`,
+            sort: 'scheduled_at',
+          }),
+          pb.collection('candidates').getFullList<Candidate>({
+            filter: `campaign_id = "${currentCampaign.id}"`,
+            sort: 'candidate_number',
+          }),
+          pb.collection('users').getFullList<UserRecord>({
+            sort: 'name',
+          }),
+        ])
 
       setActivities(actRes)
       setSupportPoints(spRes)
@@ -169,6 +180,7 @@ export const Dashboard: React.FC = () => {
       setAlerts(alertsRes)
       setScheduledPosts(postsRes)
       setLinkedCandidates(candRes)
+      setTeamUsers(usersRes)
     } catch (err) {
       console.error('Error fetching dashboard data', err)
     } finally {
@@ -339,6 +351,15 @@ export const Dashboard: React.FC = () => {
       { name: 'Dr. Santos', total: 390 },
     ]
   }, [linkedCandidates, currentCampaign])
+
+  // Gamification leaderboards for Dashboard Top 5
+  const { top5Indicadores, top5Checkins } = useMemo(() => {
+    const leaderboard = computeGamificationLeaderboard(teamUsers, activities, teamLocations, 'all')
+    return {
+      top5Indicadores: leaderboard.byIndicacoes.slice(0, 5),
+      top5Checkins: leaderboard.byCheckins.slice(0, 5),
+    }
+  }, [teamUsers, activities, teamLocations])
 
   // Chart data: daily conversions vs TSE benchmark by zone
   const chartData = useMemo(() => {
@@ -832,6 +853,325 @@ export const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* SEÇÃO GAMIFICAÇÃO & RANKINGS DA EQUIPE (Top Indicadores & Top Check-ins lado a lado) */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[10px] uppercase">
+                Gamificação da Equipe
+              </Badge>
+              <span className="text-xs text-slate-400">Desempenho & Destaques de Campo</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500 fill-amber-400" /> Rankings de Performance
+            </h2>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => navigate('/ranking')}
+            className="text-xs h-8 bg-slate-900 hover:bg-slate-800 text-white font-semibold self-start sm:self-auto"
+          >
+            Ver Gamificação Completa <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Card 1: Top 5 Indicadores */}
+          <Card className="border-amber-200/80 shadow-sm bg-white overflow-hidden flex flex-col justify-between">
+            <div>
+              <CardHeader className="p-4 sm:p-5 border-b border-amber-100/70 bg-gradient-to-r from-amber-50/70 via-white to-white flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                    <Flame className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      Top Indicadores
+                      <Badge className="bg-amber-500 text-slate-950 text-[10px] font-black h-4 px-1">
+                        Top 5
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500">
+                      Membros com maior volume de eleitores e conversões
+                    </CardDescription>
+                  </div>
+                </div>
+                <Trophy className="w-5 h-5 text-amber-400 fill-amber-400 opacity-80" />
+              </CardHeader>
+
+              <CardContent className="p-3 sm:p-4 space-y-2">
+                {top5Indicadores.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400">
+                    Nenhum indicador registrado ainda.
+                  </div>
+                ) : (
+                  top5Indicadores.map((item, idx) => {
+                    const rank = idx + 1
+                    const isTop3 = rank <= 3
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
+                    const roleText =
+                      item.user.role === 'admin'
+                        ? 'Coordenação'
+                        : item.user.role === 'coordinator'
+                          ? 'Zonal'
+                          : 'Campo'
+
+                    return (
+                      <div
+                        key={item.user.id}
+                        onClick={() => navigate('/ranking')}
+                        className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer hover:shadow-xs ${
+                          rank === 1
+                            ? 'bg-gradient-to-r from-amber-50/50 via-white to-white border-amber-300 ring-1 ring-amber-300/40'
+                            : rank === 2
+                              ? 'bg-slate-50/60 border-slate-200'
+                              : rank === 3
+                                ? 'bg-orange-50/40 border-orange-200'
+                                : 'bg-white border-slate-100 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Rank icon / number */}
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs shrink-0 font-bold ${
+                              rank === 1
+                                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                                : rank === 2
+                                  ? 'bg-slate-300 text-slate-800'
+                                  : rank === 3
+                                    ? 'bg-amber-800 text-white'
+                                    : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {medal || `${rank}º`}
+                          </div>
+
+                          {/* Avatar */}
+                          <div className="w-9 h-9 rounded-lg bg-slate-900 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
+                            {item.user.avatar ? (
+                              <img
+                                src={pb.files.getURL(item.user, item.user.avatar)}
+                                alt={item.user.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : item.user.name ? (
+                              item.user.name.charAt(0).toUpperCase()
+                            ) : (
+                              'M'
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-slate-900 truncate">
+                                {item.user.name || item.user.email}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1 py-0 text-slate-500 font-normal"
+                              >
+                                {roleText}
+                              </Badge>
+                            </div>
+
+                            {/* Badges icons preview */}
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {item.badges.slice(0, 3).map((b) => (
+                                <span
+                                  key={b.id}
+                                  title={b.title}
+                                  className="text-[10px] bg-slate-100 px-1 rounded"
+                                >
+                                  {b.icon}
+                                </span>
+                              ))}
+                              <span className="text-[10px] text-slate-400 ml-1">
+                                {item.totalCheckins} check-ins
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Indication count */}
+                        <div className="text-right shrink-0">
+                          <div className="font-extrabold text-sm text-amber-600">
+                            {item.totalIndicacoes.toLocaleString('pt-BR')}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-medium">indicações</div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </CardContent>
+            </div>
+
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">
+                Total:{' '}
+                <strong className="text-slate-800">
+                  {top5Indicadores.reduce((a, c) => a + c.totalIndicacoes, 0)} indicações
+                </strong>
+              </span>
+              <button
+                onClick={() => navigate('/ranking')}
+                className="text-amber-600 font-bold hover:underline flex items-center gap-1"
+              >
+                Ver todos <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </Card>
+
+          {/* Card 2: Top 5 Check-ins */}
+          <Card className="border-blue-200/80 shadow-sm bg-white overflow-hidden flex flex-col justify-between">
+            <div>
+              <CardHeader className="p-4 sm:p-5 border-b border-blue-100/70 bg-gradient-to-r from-blue-50/70 via-white to-white flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      Top Check-ins
+                      <Badge className="bg-blue-600 text-white text-[10px] font-black h-4 px-1">
+                        Top 5
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500">
+                      Membros com maior volume de atividades e presença
+                    </CardDescription>
+                  </div>
+                </div>
+                <Award className="w-5 h-5 text-blue-500 opacity-80" />
+              </CardHeader>
+
+              <CardContent className="p-3 sm:p-4 space-y-2">
+                {top5Checkins.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400">
+                    Nenhum check-in registrado ainda.
+                  </div>
+                ) : (
+                  top5Checkins.map((item, idx) => {
+                    const rank = idx + 1
+                    const isTop3 = rank <= 3
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
+                    const roleText =
+                      item.user.role === 'admin'
+                        ? 'Coordenação'
+                        : item.user.role === 'coordinator'
+                          ? 'Zonal'
+                          : 'Campo'
+
+                    return (
+                      <div
+                        key={item.user.id}
+                        onClick={() => navigate('/ranking')}
+                        className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer hover:shadow-xs ${
+                          rank === 1
+                            ? 'bg-gradient-to-r from-blue-50/50 via-white to-white border-blue-300 ring-1 ring-blue-300/40'
+                            : rank === 2
+                              ? 'bg-slate-50/60 border-slate-200'
+                              : rank === 3
+                                ? 'bg-orange-50/40 border-orange-200'
+                                : 'bg-white border-slate-100 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Rank icon / number */}
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs shrink-0 font-bold ${
+                              rank === 1
+                                ? 'bg-blue-600 text-white font-black shadow-xs'
+                                : rank === 2
+                                  ? 'bg-slate-300 text-slate-800'
+                                  : rank === 3
+                                    ? 'bg-amber-800 text-white'
+                                    : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {medal || `${rank}º`}
+                          </div>
+
+                          {/* Avatar */}
+                          <div className="w-9 h-9 rounded-lg bg-slate-900 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
+                            {item.user.avatar ? (
+                              <img
+                                src={pb.files.getURL(item.user, item.user.avatar)}
+                                alt={item.user.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : item.user.name ? (
+                              item.user.name.charAt(0).toUpperCase()
+                            ) : (
+                              'M'
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-slate-900 truncate">
+                                {item.user.name || item.user.email}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1 py-0 text-slate-500 font-normal"
+                              >
+                                {roleText}
+                              </Badge>
+                            </div>
+
+                            {/* Badges icons preview */}
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {item.badges.slice(0, 3).map((b) => (
+                                <span
+                                  key={b.id}
+                                  title={b.title}
+                                  className="text-[10px] bg-slate-100 px-1 rounded"
+                                >
+                                  {b.icon}
+                                </span>
+                              ))}
+                              <span className="text-[10px] text-slate-400 ml-1">
+                                {item.totalKm} km percorridos
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Check-ins count */}
+                        <div className="text-right shrink-0">
+                          <div className="font-extrabold text-sm text-blue-600">
+                            {item.totalCheckins}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-medium">check-ins</div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </CardContent>
+            </div>
+
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">
+                Total:{' '}
+                <strong className="text-slate-800">
+                  {top5Checkins.reduce((a, c) => a + c.totalCheckins, 0)} check-ins
+                </strong>
+              </span>
+              <button
+                onClick={() => navigate('/ranking')}
+                className="text-blue-600 font-bold hover:underline flex items-center gap-1"
+              >
+                Ver todos <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </Card>
+        </div>
+      </div>
 
       {/* 6 KPI Cards Grid (Including Alcance Digital & Postagens Programadas) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
