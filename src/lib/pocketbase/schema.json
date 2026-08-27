@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T19:05:15.724Z",
+  "generatedAt": "2026-08-27T22:26:56.299Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,30 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "coordinator", "field_team"]
+          "selectValues": [
+            "admin",
+            "coordinator",
+            "field_team"
+          ]
         },
         {
           "name": "current_campaign",
@@ -110,14 +119,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -152,7 +166,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["door-to-door", "event", "flyering", "support-point"]
+          "selectValues": [
+            "door-to-door",
+            "event",
+            "flyering",
+            "support-point"
+          ]
         },
         {
           "name": "lat",
@@ -195,14 +214,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "photo",
@@ -282,17 +306,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_team_locations_user ON team_locations (user_id, created DESC)"]
+      "indexes": [
+        "CREATE INDEX idx_team_locations_user ON team_locations (user_id, created DESC)"
+      ]
     },
     {
       "name": "support_points",
@@ -323,7 +354,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["office", "committee", "partner"]
+          "selectValues": [
+            "office",
+            "committee",
+            "partner"
+          ]
         },
         {
           "name": "lat",
@@ -360,17 +395,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_support_points_camp ON support_points (campaign_id)"]
+      "indexes": [
+        "CREATE INDEX idx_support_points_camp ON support_points (campaign_id)"
+      ]
     },
     {
       "name": "territory_data",
@@ -430,14 +472,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -486,14 +533,21 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["active", "resolved", "dismissed"]
+          "selectValues": [
+            "active",
+            "resolved",
+            "dismissed"
+          ]
         },
         {
           "name": "severity",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["warning", "critical"]
+          "selectValues": [
+            "warning",
+            "critical"
+          ]
         },
         {
           "name": "priority_score",
@@ -524,14 +578,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
