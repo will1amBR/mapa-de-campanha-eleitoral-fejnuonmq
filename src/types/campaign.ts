@@ -249,3 +249,26 @@ export interface AdCampaign {
     campaign_id?: Campaign
   }
 }
+
+// 5. Weekly Goals
+export type WeeklyGoalType = 'checkins' | 'indicacoes' | 'km'
+export type WeeklyGoalStatus = 'active' | 'completed' | 'archived'
+
+export interface WeeklyGoal {
+  id: string
+  campaign_id: string
+  title: string
+  description?: string
+  type: WeeklyGoalType
+  target_value: number
+  week_start: string
+  week_end: string
+  created_by?: string
+  status?: WeeklyGoalStatus
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+    created_by?: UserRecord
+  }
+}

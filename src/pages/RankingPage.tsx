@@ -11,6 +11,7 @@ import {
 } from '@/lib/gamification'
 import { GamificationPodium } from '@/components/gamification/GamificationPodium'
 import { MemberRankingCard } from '@/components/gamification/MemberRankingCard'
+import { WeeklyGoalsSection } from '@/components/gamification/WeeklyGoalsSection'
 import {
   Trophy,
   Flame,
@@ -151,33 +152,34 @@ export const RankingPage: React.FC = () => {
   const topCheckin = byCheckins[0]
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-hidden">
       {/* Top Hero Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 sm:p-8 rounded-2xl text-white shadow-xl border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2.5">
-            <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase px-2.5 py-0.5">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-4 sm:p-6 md:p-8 rounded-2xl text-white shadow-xl border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 min-w-0">
+        <div className="min-w-0 w-full md:w-auto">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase px-2.5 py-0.5 shrink-0">
               Gamificação & Reconhecimento
             </Badge>
-            <span className="text-xs text-slate-300 font-medium">
+            <span className="text-xs text-slate-300 font-medium truncate">
               Equipes de Campo em Alta Performance
             </span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-amber-400 fill-amber-400" /> Rankings da Campanha
+          <h1 className="text-xl sm:text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 break-words">
+            <Trophy className="w-6 sm:w-8 h-6 sm:h-8 text-amber-400 fill-amber-400 shrink-0" />{' '}
+            Rankings da Campanha
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1.5 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 mt-1.5 max-w-2xl leading-relaxed break-words">
             Acompanhe a liderança em captação de apoiadores e volume de atividades geolocalizadas.
-            Conquiste selos, badges e destaque no pódio oficial.
+            Conquiste selos, badges e metas semanais da equipe.
           </p>
         </div>
 
         {/* Global Period Selector */}
-        <div className="flex items-center gap-2 bg-slate-800/90 p-2 rounded-xl border border-slate-700 shadow-md">
-          <Filter className="w-4 h-4 text-amber-400 ml-1" />
-          <span className="text-xs text-slate-300 font-semibold">Período:</span>
+        <div className="flex items-center gap-2 bg-slate-800/90 p-2 rounded-xl border border-slate-700 shadow-md w-full md:w-auto">
+          <Filter className="w-4 h-4 text-amber-400 ml-1 shrink-0" />
+          <span className="text-xs text-slate-300 font-semibold shrink-0">Período:</span>
           <Select value={period} onValueChange={(val: PeriodFilter) => setPeriod(val)}>
-            <SelectTrigger className="bg-slate-900 text-white border-slate-700 text-xs h-9 w-40 font-bold">
+            <SelectTrigger className="bg-slate-900 text-white border-slate-700 text-xs h-9 w-full md:w-40 font-bold">
               <SelectValue placeholder="Selecione o período" />
             </SelectTrigger>
             <SelectContent className="bg-slate-900 text-white border-slate-800 text-xs font-semibold">
@@ -188,6 +190,9 @@ export const RankingPage: React.FC = () => {
           </Select>
         </div>
       </div>
+
+      {/* METAS SEMANAIS DA EQUIPE */}
+      <WeeklyGoalsSection activities={activities} teamLocations={teamLocations} teamUsers={users} />
 
       {/* 4 Stat Highlights */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -312,25 +317,26 @@ export const RankingPage: React.FC = () => {
         onValueChange={(val) => setActiveTab(val as 'indicacoes' | 'checkins')}
         className="space-y-6"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
-          <TabsList className="bg-slate-100 p-1 rounded-xl h-11 border border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <TabsList className="bg-slate-100 p-1 rounded-xl h-auto sm:h-11 border border-slate-200 flex flex-wrap gap-1">
             <TabsTrigger
               value="indicacoes"
-              className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 data-[state=active]:font-extrabold text-xs font-semibold px-4 h-9 rounded-lg flex items-center gap-2"
+              className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 data-[state=active]:font-extrabold text-xs font-semibold px-3 sm:px-4 h-8 sm:h-9 rounded-lg flex items-center gap-1.5 flex-1 sm:flex-none justify-center whitespace-normal"
             >
-              <Flame className="w-4 h-4" /> Top Indicadores ({filteredIndicacoes.length})
+              <Flame className="w-3.5 h-3.5 shrink-0" /> Top Indicadores (
+              {filteredIndicacoes.length})
             </TabsTrigger>
             <TabsTrigger
               value="checkins"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-extrabold text-xs font-semibold px-4 h-9 rounded-lg flex items-center gap-2"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-extrabold text-xs font-semibold px-3 sm:px-4 h-8 sm:h-9 rounded-lg flex items-center gap-1.5 flex-1 sm:flex-none justify-center whitespace-normal"
             >
-              <MapPin className="w-4 h-4" /> Top Check-ins ({filteredCheckins.length})
+              <MapPin className="w-3.5 h-3.5 shrink-0" /> Top Check-ins ({filteredCheckins.length})
             </TabsTrigger>
           </TabsList>
 
           {/* Search bar */}
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 shrink-0" />
             <Input
               placeholder="Buscar por nome do membro..."
               value={searchQuery}

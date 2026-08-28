@@ -14,6 +14,7 @@ import type {
   UserRecord,
 } from '@/types/campaign'
 import { computeGamificationLeaderboard, type MemberGamificationStats } from '@/lib/gamification'
+import { WeeklyGoalsSection } from '@/components/gamification/WeeklyGoalsSection'
 import {
   Users,
   Target,
@@ -402,47 +403,49 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-hidden">
       {/* Top Banner with Campaign Header */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 rounded-2xl text-white shadow-lg border border-slate-700/50">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="bg-amber-500 text-slate-950 font-bold px-2.5 py-0.5 text-xs">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-700/50 min-w-0">
+        <div className="min-w-0 w-full lg:w-auto">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-bold px-2.5 py-0.5 text-xs shrink-0">
               SISTEMA ELEITORAL 2024/2026
             </Badge>
-            <span className="text-xs text-slate-300">Base TSE/IBGE Atualizada</span>
+            <span className="text-xs text-slate-300 truncate">Base TSE/IBGE Atualizada</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight break-words">
             {currentCampaign?.candidate_name || 'Campanha Eleitoral'}
           </h1>
-          <p className="text-sm text-slate-300 mt-1 flex items-center gap-2">
-            <span>{currentCampaign?.party || 'Partido'}</span> •
-            <span>Município IBGE {currentCampaign?.ibge_city_code || '3550308'} (São Paulo)</span>
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 flex items-center gap-2 flex-wrap break-words">
+            <span className="font-semibold text-amber-400">
+              {currentCampaign?.party || 'Partido'}
+            </span>{' '}
+            •<span>Município IBGE {currentCampaign?.ibge_city_code || '3550308'} (São Paulo)</span>
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
           <Button
             onClick={() => setOnboardingOpen(true)}
             variant="outline"
-            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-amber-400 font-semibold h-10 px-3.5"
+            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-amber-400 font-semibold h-9 sm:h-10 px-3 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-normal"
           >
-            <Compass className="w-4 h-4 mr-1.5" /> Guia de Início
+            <Compass className="w-4 h-4 mr-1.5 shrink-0" /> Guia de Início
           </Button>
           <Button
             onClick={() => navigate('/team')}
             data-conversion="field_checkin_cta"
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-10 px-4"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-normal"
           >
-            <Flame className="w-4 h-4 mr-2" /> Novo Check-in de Campo
+            <Flame className="w-4 h-4 mr-1.5 shrink-0" /> Novo Check-in
           </Button>
           <Button
             onClick={() => navigate('/ai-consultant')}
             data-conversion="ai_consultant_cta"
             variant="outline"
-            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white font-semibold h-10 px-4"
+            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-normal"
           >
-            <Bot className="w-4 h-4 mr-2 text-amber-400" /> Estrategista IA
+            <Bot className="w-4 h-4 mr-1.5 text-amber-400 shrink-0" /> Estrategista IA
           </Button>
         </div>
       </div>
@@ -454,51 +457,60 @@ export const Dashboard: React.FC = () => {
         onComplete={handleCompleteOnboarding}
       />
 
+      {/* METAS SEMANAIS DA EQUIPE */}
+      <WeeklyGoalsSection
+        activities={activities}
+        teamLocations={teamLocations}
+        teamUsers={teamUsers}
+      />
+
       {/* Automated Inactive Zones Alerts Section */}
       <Card className="border-amber-200/80 bg-gradient-to-r from-amber-50/50 via-white to-amber-50/30 shadow-sm overflow-hidden">
-        <CardHeader className="p-4 sm:p-5 border-b border-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center">
+        <CardHeader className="p-4 sm:p-5 border-b border-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0 w-full sm:w-auto">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center shrink-0">
               <BellRing className="w-5 h-5 animate-bounce" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-sm sm:text-base font-bold text-slate-900">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-sm sm:text-base font-bold text-slate-900 truncate">
                   Alertas Automáticos de Zonas Inativas
                 </CardTitle>
                 <Badge
-                  className={`text-[10px] font-bold ${
+                  className={`text-[10px] font-bold shrink-0 ${
                     alerts.length > 0 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'
                   }`}
                 >
                   {alerts.length} {alerts.length === 1 ? 'zona em risco' : 'zonas em risco'}
                 </Badge>
               </div>
-              <CardDescription className="text-xs text-slate-500">
-                Regiões prioritárias com alto eleitorado sem atividade de campo por mais de{' '}
-                {thresholdDays} dias
+              <CardDescription className="text-xs text-slate-500 mt-0.5">
+                Regiões prioritárias com alto eleitorado sem atividade por mais de {thresholdDays}{' '}
+                dias
               </CardDescription>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
             <Button
               size="sm"
               variant="outline"
               onClick={() => setConfigOpen(true)}
-              className="text-xs h-8 border-slate-200 hover:bg-slate-100 font-semibold"
+              className="text-xs h-8 border-slate-200 hover:bg-slate-100 font-semibold flex-1 sm:flex-none"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 mr-1 text-slate-500" /> Configurar Limite (
+              <SlidersHorizontal className="w-3.5 h-3.5 mr-1 text-slate-500 shrink-0" /> Limite (
               {thresholdDays}d)
             </Button>
             <Button
               size="sm"
               onClick={handleScanAlerts}
               disabled={isScanning}
-              className="text-xs h-8 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+              className="text-xs h-8 bg-slate-900 hover:bg-slate-800 text-white font-semibold flex-1 sm:flex-none"
             >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isScanning ? 'animate-spin' : ''}`} />
-              {isScanning ? 'Varrendo...' : 'Escanear Agora'}
+              <RefreshCw
+                className={`w-3.5 h-3.5 mr-1 shrink-0 ${isScanning ? 'animate-spin' : ''}`}
+              />
+              {isScanning ? 'Varrendo...' : 'Escanear'}
             </Button>
           </div>
         </CardHeader>
@@ -664,17 +676,17 @@ export const Dashboard: React.FC = () => {
 
       {/* SEÇÃO CAPTAÇÃO (Aba 07: Filtros + Métricas + Gráficos Cadastros por dia, Por origem, Por candidato) */}
       <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
-        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] uppercase">
+        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] uppercase shrink-0">
                 Aba 07 • Captação
               </Badge>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 truncate">
                 Dashboard de cadastros, origem e indicações
               </span>
             </div>
-            <CardTitle className="text-base font-extrabold text-slate-900">
+            <CardTitle className="text-base font-extrabold text-slate-900 truncate">
               Métricas de Captação & Relacionamento
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
@@ -683,14 +695,14 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Filters Bar */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-slate-500">Período:</span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto">
+            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <span className="text-[11px] font-semibold text-slate-500 shrink-0">Período:</span>
               <Select
                 value={captacaoPeriod}
                 onValueChange={(val: '7' | '14' | '30' | 'all') => setCaptacaoPeriod(val)}
               >
-                <SelectTrigger className="h-8 text-xs w-28 bg-white border-slate-200">
+                <SelectTrigger className="h-8 text-xs w-full sm:w-28 bg-white border-slate-200">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white text-xs">
@@ -702,13 +714,13 @@ export const Dashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-slate-500">Origem:</span>
+            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <span className="text-[11px] font-semibold text-slate-500 shrink-0">Origem:</span>
               <Select
                 value={captacaoOriginFilter}
                 onValueChange={(val) => setCaptacaoOriginFilter(val)}
               >
-                <SelectTrigger className="h-8 text-xs w-32 bg-white border-slate-200">
+                <SelectTrigger className="h-8 text-xs w-full sm:w-32 bg-white border-slate-200">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white text-xs">
@@ -725,7 +737,7 @@ export const Dashboard: React.FC = () => {
               size="sm"
               variant="outline"
               onClick={exportCaptacaoCSV}
-              className="h-8 text-xs border-slate-200 hover:bg-slate-50 font-semibold"
+              className="h-8 text-xs border-slate-200 hover:bg-slate-50 font-semibold w-full sm:w-auto justify-center"
             >
               <Download className="w-3.5 h-3.5 mr-1" /> Exportar CSV
             </Button>
@@ -1303,10 +1315,11 @@ export const Dashboard: React.FC = () => {
 
       {/* Seção Próximas Postagens */}
       <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
-        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4 text-amber-500" /> Próximas Postagens Programadas
+        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2 truncate">
+              <CalendarIcon className="w-4 h-4 text-amber-500 shrink-0" /> Próximas Postagens
+              Programadas
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
               Cronograma imediato de publicações nas redes sociais da campanha
@@ -1316,9 +1329,9 @@ export const Dashboard: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={() => navigate('/content-calendar')}
-            className="text-xs h-8 font-semibold border-slate-200 hover:bg-slate-50"
+            className="text-xs h-8 font-semibold border-slate-200 hover:bg-slate-50 shrink-0 self-start sm:self-auto"
           >
-            Ver Calendário Completo <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            Ver Calendário <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
         </CardHeader>
 
@@ -1386,23 +1399,23 @@ export const Dashboard: React.FC = () => {
 
       {/* Seção Candidatos Vinculados (TSE) */}
       <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
-        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-emerald-600" /> Candidatos Vinculados do TSE
+        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2 truncate">
+              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" /> Candidatos Vinculados do
+              TSE
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
-              Candidaturas oficiais registradas no Tribunal Superior Eleitoral vinculadas a esta
-              campanha
+              Candidaturas oficiais registradas no TSE vinculadas à campanha
             </CardDescription>
           </div>
           <Button
             size="sm"
             variant="outline"
             onClick={() => navigate('/candidates')}
-            className="text-xs h-8 font-semibold border-slate-200 hover:bg-slate-50"
+            className="text-xs h-8 font-semibold border-slate-200 hover:bg-slate-50 shrink-0 self-start sm:self-auto"
           >
-            Explorar Candidaturas SP <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            Explorar SP <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
         </CardHeader>
 
@@ -1465,22 +1478,22 @@ export const Dashboard: React.FC = () => {
         {/* Left 2 Cols: Mini Live Map */}
         <div className="lg:col-span-2 space-y-4">
           <Card className="border-slate-200/80 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between border-b border-slate-100">
-              <div>
-                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-amber-500" /> Dispersão Tática da Equipe & Calor
+            <CardHeader className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 min-w-0">
+              <div className="min-w-0">
+                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 truncate">
+                  <Layers className="w-4 h-4 text-amber-500 shrink-0" /> Dispersão Tática & Calor
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500 mt-0.5">
-                  Visualização rápida de agentes ao vivo e calor de panfletagem/visitas
+                  Agentes ao vivo e calor de panfletagem/visitas
                 </CardDescription>
               </div>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => navigate('/map')}
-                className="text-xs h-8 font-semibold border-slate-200 hover:bg-slate-50"
+                className="text-xs h-8 font-semibold border-slate-200 hover:bg-slate-50 shrink-0 self-start sm:self-auto"
               >
-                Abrir Mapa Completo <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                Abrir Mapa <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Button>
             </CardHeader>
             <CardContent className="p-0">

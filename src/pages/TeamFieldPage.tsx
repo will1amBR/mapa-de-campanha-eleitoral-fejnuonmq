@@ -410,40 +410,44 @@ export const TeamFieldPage: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-5xl mx-auto w-full min-w-0 overflow-hidden">
       {/* PWA Mobile Optimized Header & GPS State */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl text-white shadow-lg border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase">
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 min-w-0">
+        <div className="min-w-0 w-full md:w-auto">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase shrink-0">
               Terminal PWA de Campo
             </Badge>
             {isTracking && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>{' '}
                 Transmitindo ao Vivo
               </span>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-black">Painel do Militante & Coordenador</h1>
-          <p className="text-xs text-slate-300 mt-1">
-            Membro: <strong>{user?.name || user?.email}</strong> • Bateria Estimada:{' '}
+          <h1 className="text-xl sm:text-2xl font-black break-words">
+            Painel do Militante & Coordenador
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 break-words">
+            Membro: <strong>{user?.name || user?.email}</strong> • Bateria:{' '}
             <strong>{batteryLevel}%</strong>
           </p>
         </div>
 
         {/* Big GPS Toggle Button */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
           <Button
             size="lg"
             onClick={isTracking ? stopTracking : startTracking}
-            className={`w-full sm:w-auto font-bold h-12 px-6 shadow-xl transition-all ${
+            className={`w-full md:w-auto font-bold h-11 sm:h-12 px-4 sm:px-6 shadow-xl transition-all text-xs sm:text-sm whitespace-normal justify-center ${
               isTracking
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-900/30'
             }`}
           >
-            <Radio className={`w-5 h-5 mr-2 ${isTracking ? 'animate-spin' : ''}`} />
+            <Radio
+              className={`w-4 sm:w-5 h-4 sm:h-5 mr-1.5 shrink-0 ${isTracking ? 'animate-spin' : ''}`}
+            />
             {isTracking ? 'Parar Rastreamento GPS' : 'Iniciar Rastreamento GPS'}
           </Button>
         </div>
@@ -460,19 +464,19 @@ export const TeamFieldPage: React.FC = () => {
       )}
 
       {/* Top Main Navigation Tabs for Aba 08: Equipes vs Atividades vs Check-in */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
           <Button
             variant={mainTab === 'equipes' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setMainTab('equipes')}
-            className={`text-xs font-bold ${
+            className={`text-xs font-bold flex-1 sm:flex-none justify-center whitespace-normal h-8 sm:h-9 ${
               mainTab === 'equipes'
                 ? 'bg-slate-900 text-white'
                 : 'bg-white text-slate-700 border-slate-200'
             }`}
           >
-            <Users className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Sub-aba 01: Equipes (
+            <Users className="w-3.5 h-3.5 mr-1 text-amber-500 shrink-0" /> Equipes (
             {teamsList.length})
           </Button>
 
@@ -480,27 +484,27 @@ export const TeamFieldPage: React.FC = () => {
             variant={mainTab === 'atividades' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setMainTab('atividades')}
-            className={`text-xs font-bold ${
+            className={`text-xs font-bold flex-1 sm:flex-none justify-center whitespace-normal h-8 sm:h-9 ${
               mainTab === 'atividades'
                 ? 'bg-slate-900 text-white'
                 : 'bg-white text-slate-700 border-slate-200'
             }`}
           >
-            <MapPin className="w-3.5 h-3.5 mr-1.5 text-emerald-500" /> Sub-aba 02: Atividades
-            Planejadas ({plannedActions.length})
+            <MapPin className="w-3.5 h-3.5 mr-1 text-emerald-500 shrink-0" /> Ações (
+            {plannedActions.length})
           </Button>
 
           <Button
             variant={mainTab === 'checkin' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setMainTab('checkin')}
-            className={`text-xs font-bold ${
+            className={`text-xs font-bold w-full sm:w-auto justify-center whitespace-normal h-8 sm:h-9 ${
               mainTab === 'checkin'
                 ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
                 : 'bg-white text-slate-700 border-slate-200'
             }`}
           >
-            <Flame className="w-3.5 h-3.5 mr-1.5" /> Check-in de Campo PWA
+            <Flame className="w-3.5 h-3.5 mr-1 shrink-0" /> Check-in de Campo PWA
           </Button>
         </div>
 
@@ -508,9 +512,9 @@ export const TeamFieldPage: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setNewTeamModalOpen(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 w-full sm:w-auto justify-center"
           >
-            <Plus className="w-3.5 h-3.5 mr-1" /> Nova Equipe
+            <Plus className="w-3.5 h-3.5 mr-1 shrink-0" /> Nova Equipe
           </Button>
         )}
 
@@ -518,9 +522,9 @@ export const TeamFieldPage: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setNewActionModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 w-full sm:w-auto justify-center"
           >
-            <Plus className="w-3.5 h-3.5 mr-1" /> Planejar Ação de Rua
+            <Plus className="w-3.5 h-3.5 mr-1 shrink-0" /> Planejar Ação de Rua
           </Button>
         )}
       </div>

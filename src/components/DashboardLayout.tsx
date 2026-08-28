@@ -117,55 +117,54 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   ]
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 overflow-x-hidden">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 w-full h-16 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between px-4 sm:px-6 shadow-md">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 w-full h-16 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between px-3 sm:px-6 shadow-md">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             type="button"
-            className="md:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800"
+            className="md:hidden p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 shrink-0"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Menu de Navegação"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
           <div
-            className="flex items-center gap-2.5 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer min-w-0"
             onClick={() => navigate('/dashboard')}
           >
-            <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-              <Compass className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
+              <Compass className="w-4 sm:w-5 h-4 sm:h-5 stroke-[2.5]" />
             </div>
-            <div>
-              <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
+            <div className="min-w-0 hidden xs:block">
+              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white flex items-center gap-1 leading-none truncate">
                 Estrategista <span className="text-amber-400 font-semibold">Eleitoral</span>
               </span>
-              <span className="text-[10px] text-slate-400 block -mt-1 font-medium">
-                Inteligência de Campanha TSE/IBGE
+              <span className="text-[9px] sm:text-[10px] text-slate-400 block font-medium truncate mt-0.5">
+                Inteligência TSE/IBGE
               </span>
             </div>
           </div>
         </div>
 
-        {/* Campaign Switcher Dropdown */}
-        <div className="flex items-center gap-3">
+        {/* Campaign Switcher Dropdown & Actions */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {campaigns.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="bg-slate-800/80 border-slate-700 text-slate-100 hover:bg-slate-800 hover:text-white text-xs sm:text-sm font-medium h-9 max-w-[220px] sm:max-w-[280px] justify-between shadow-sm"
+                  className="bg-slate-800/80 border-slate-700 text-slate-100 hover:bg-slate-800 hover:text-white text-xs font-medium h-8 sm:h-9 max-w-[140px] sm:max-w-[240px] justify-between shadow-sm px-2 sm:px-3"
                 >
-                  <div className="flex items-center gap-2 truncate">
+                  <div className="flex items-center gap-1.5 truncate">
                     <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: currentCampaign?.color || '#F59E0B' }}
                     />
-                    <span className="truncate">
-                      {currentCampaign?.name || 'Selecione Campanha'}
-                    </span>
+                    <span className="truncate text-xs">{currentCampaign?.name || 'Campanha'}</span>
                   </div>
-                  <ChevronDown className="w-3.5 h-3.5 ml-2 opacity-60 shrink-0" />
+                  <ChevronDown className="w-3 h-3 ml-1 opacity-60 shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -301,7 +300,8 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Body */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-w-0">
+        {' '}
         {/* Desktop Collapsible Sidebar */}
         <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 text-slate-300 shrink-0 select-none">
           {/* Campaign summary card */}
@@ -409,7 +409,6 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
         </aside>
-
         {/* Mobile menu modal/drawer */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm md:hidden flex flex-col">
@@ -477,9 +476,10 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
         )}
-
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-y-auto pb-16 md:pb-0">{children}</main>
+        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 pb-16 md:pb-0">
+          {children}
+        </main>
       </div>
 
       {/* PWA Mobile Bottom Bar */}

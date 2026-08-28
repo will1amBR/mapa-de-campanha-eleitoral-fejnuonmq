@@ -253,33 +253,35 @@ export const TeamPerformancePage: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-hidden">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 rounded-2xl text-white shadow-lg border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 min-w-0">
+        <div className="min-w-0 w-full md:w-auto">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase shrink-0">
               Módulo de Coordenação Geral
             </Badge>
-            <span className="text-xs text-slate-300">Auditoria de Produtividade & GPS</span>
+            <span className="text-xs text-slate-300 truncate">
+              Auditoria de Produtividade & GPS
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight break-words">
             Desempenho da Equipe de Campo
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-            Acompanhe quilometragem percorrida, conversões de eleitores, check-ins e sentimento
-            médio de cada militante da campanha.
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl break-words">
+            Acompanhe quilometragem percorrida, conversões de eleitores, check-ins e metas da
+            equipe.
           </p>
         </div>
 
         {/* Global Date Filter Selector */}
-        <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700">
-          <Filter className="w-4 h-4 text-slate-400 ml-1.5" />
+        <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 w-full md:w-auto">
+          <Filter className="w-4 h-4 text-slate-400 ml-1.5 shrink-0" />
           <Select
             value={dateFilter}
             onValueChange={(val: 'all' | '7' | '14' | '30') => setDateFilter(val)}
           >
-            <SelectTrigger className="bg-slate-900 text-white border-slate-700 text-xs h-8 w-36">
+            <SelectTrigger className="bg-slate-900 text-white border-slate-700 text-xs h-8 w-full md:w-36">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent className="bg-slate-900 text-white border-slate-800 text-xs">

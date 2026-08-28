@@ -121,26 +121,28 @@ export const SupportPointsPage: React.FC = () => {
   )
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl text-white shadow-lg border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-800 min-w-0">
+        <div className="min-w-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase shrink-0">
               Infraestrutura Fixa
             </Badge>
-            <span className="text-xs text-slate-300">Hubs de Distribuição e Apoio</span>
+            <span className="text-xs text-slate-300 truncate">Hubs de Distribuição e Apoio</span>
           </div>
-          <h1 className="text-2xl font-extrabold">Pontos de Apoio & Comitês</h1>
-          <p className="text-xs text-slate-300 mt-1">
+          <h1 className="text-xl sm:text-2xl font-extrabold break-words">
+            Pontos de Apoio & Comitês
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 break-words">
             Gerencie comitês centrais, regionais e residências de lideranças comunitárias.
           </p>
         </div>
 
         <Button
           onClick={() => setDialogOpen(true)}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-10 px-4"
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-normal"
         >
-          <Plus className="w-4 h-4 mr-2" /> Novo Ponto de Apoio
+          <Plus className="w-4 h-4 mr-1.5 shrink-0" /> Novo Ponto de Apoio
         </Button>
       </div>
 

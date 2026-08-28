@@ -7,11 +7,16 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 @layer base {
   * {
     font-family: 'Inter', sans-serif;
   }
-
   :root {
     /* Estrategista Eleitoral Design System */
     --background: 210 40% 98%;

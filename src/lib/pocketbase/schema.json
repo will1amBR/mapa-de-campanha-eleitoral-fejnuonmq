@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T23:00:11.270Z",
+  "generatedAt": "2026-08-28T14:07:38.960Z",
   "collections": [
     {
       "name": "users",
@@ -1067,6 +1067,96 @@
       "indexes": [
         "CREATE INDEX idx_ad_campaigns_camp ON ad_campaigns (campaign_id)",
         "CREATE INDEX idx_ad_campaigns_status ON ad_campaigns (status)"
+      ]
+    },
+    {
+      "name": "weekly_goals",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'coordinator')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'coordinator')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'coordinator')"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["checkins", "indicacoes", "km"]
+        },
+        {
+          "name": "target_value",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "week_start",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "week_end",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created_by",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["active", "completed", "archived"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_weekly_goals_campaign ON weekly_goals (campaign_id)",
+        "CREATE INDEX idx_weekly_goals_status ON weekly_goals (status)",
+        "CREATE INDEX idx_weekly_goals_type ON weekly_goals (type)"
       ]
     }
   ]
