@@ -233,47 +233,47 @@ export const CandidatesPage: React.FC = () => {
   const totalPages = Math.ceil(totalCount / perPage) || 1
 
   return (
-    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-hidden">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-700/50 min-w-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-3.5 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-700/50 min-w-0 w-full">
         <div className="min-w-0 w-full sm:w-auto">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <Badge className="bg-amber-500 text-slate-950 font-bold px-2.5 py-0.5 text-xs shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-black px-2 py-0.5 text-[10px] sm:text-xs shrink-0">
               BASE TSE OFICIAL SP (2024 / 2026)
             </Badge>
-            <span className="text-xs text-slate-300 truncate">
-              Consulta de Candidaturas Eleitorais
+            <span className="text-[11px] sm:text-xs text-slate-300 truncate">
+              Consulta de Candidaturas
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2.5 break-words">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2 break-words">
             Candidaturas de São Paulo
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 break-words">
-            Pesquise, filtre dados da Justiça Eleitoral (Deputado Estadual, Federal, Prefeito e
-            Vereador) e vincule candidatos à campanha.
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 break-words line-clamp-2 sm:line-clamp-none">
+            Pesquise, filtre dados oficiais do TSE e vincule candidatos à sua estratégia de
+            campanha.
           </p>
         </div>
 
-        <div className="bg-slate-800/90 border border-slate-700 p-3 sm:p-4 rounded-xl text-center sm:text-right w-full sm:w-auto shrink-0">
-          <div className="text-xl sm:text-2xl font-black text-amber-400">
+        <div className="bg-slate-800/90 border border-slate-700 p-2.5 sm:p-4 rounded-xl text-left sm:text-right w-full sm:w-auto shrink-0 flex sm:flex-col justify-between items-center sm:items-end">
+          <div className="text-xs text-slate-400 font-medium sm:order-2">total de candidaturas</div>
+          <div className="text-lg sm:text-2xl font-black text-amber-400 sm:order-1">
             {totalCount.toLocaleString('pt-BR')}
           </div>
-          <div className="text-xs text-slate-400 font-medium">candidaturas em SP</div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <Card className="border-slate-200 shadow-sm bg-white">
-        <CardContent className="p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+      <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
             {/* Search Input */}
             <div className="sm:col-span-2 lg:col-span-2 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 sm:top-3" />
               <Input
-                placeholder="Buscar por nome, número ou nome social..."
+                placeholder="Buscar por nome, número ou urna..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-xs sm:text-sm h-10 border-slate-200"
+                className="pl-9 text-xs sm:text-sm h-9 sm:h-10 border-slate-200"
               />
             </div>
 
@@ -286,7 +286,7 @@ export const CandidatesPage: React.FC = () => {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-slate-200">
                   <SelectValue placeholder="Cargo" />
                 </SelectTrigger>
                 <SelectContent className="bg-white max-h-60">
@@ -325,7 +325,7 @@ export const CandidatesPage: React.FC = () => {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-slate-200">
                   <SelectValue placeholder="Eleição" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -345,7 +345,7 @@ export const CandidatesPage: React.FC = () => {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-slate-200">
                   <SelectValue placeholder="Município" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60 bg-white">
@@ -368,7 +368,7 @@ export const CandidatesPage: React.FC = () => {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-slate-200">
                   <SelectValue placeholder="Situação" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -388,30 +388,30 @@ export const CandidatesPage: React.FC = () => {
             yearFilter !== 'ALL' ||
             statusFilter !== 'ALL' ||
             searchQuery) && (
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs text-slate-500">
-              <span className="font-semibold text-slate-700">Filtros ativos:</span>
+            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 flex-wrap text-xs text-slate-500">
+              <span className="font-semibold text-slate-700 text-[11px]">Filtros ativos:</span>
               {searchQuery && (
-                <Badge variant="secondary" className="text-[11px] gap-1">
+                <Badge variant="secondary" className="text-[10px] gap-1">
                   Busca: "{searchQuery}"
                 </Badge>
               )}
               {yearFilter !== 'ALL' && (
-                <Badge variant="secondary" className="text-[11px] gap-1">
+                <Badge variant="secondary" className="text-[10px] gap-1">
                   Eleição: {yearFilter}
                 </Badge>
               )}
               {positionFilter !== 'ALL' && (
-                <Badge variant="secondary" className="text-[11px] gap-1">
+                <Badge variant="secondary" className="text-[10px] gap-1">
                   Cargo: {positionFilter}
                 </Badge>
               )}
               {cityFilter !== 'ALL' && (
-                <Badge variant="secondary" className="text-[11px] gap-1">
+                <Badge variant="secondary" className="text-[10px] gap-1">
                   Cidade: {cityFilter}
                 </Badge>
               )}
               {statusFilter !== 'ALL' && (
-                <Badge variant="secondary" className="text-[11px] gap-1">
+                <Badge variant="secondary" className="text-[10px] gap-1">
                   Situação: {statusFilter}
                 </Badge>
               )}
@@ -427,7 +427,7 @@ export const CandidatesPage: React.FC = () => {
                   setYearFilter('ALL')
                   setPage(1)
                 }}
-                className="h-6 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
+                className="h-5 text-[10px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-1.5"
               >
                 Limpar todos
               </Button>
@@ -436,9 +436,112 @@ export const CandidatesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Main Table */}
+      {/* Main List: Mobile Cards + Desktop Table */}
       <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Clean Card List */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {loading ? (
+            <div className="py-12 text-center text-slate-400">
+              <div className="inline-block animate-spin w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full mb-2" />
+              <div className="text-xs">Carregando candidaturas do TSE...</div>
+            </div>
+          ) : candidates.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 p-4">
+              <User className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="font-semibold text-slate-600 text-sm">Nenhuma candidatura encontrada</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Tente ajustar seus termos de busca ou filtros.
+              </p>
+            </div>
+          ) : (
+            candidates.map((cand) => {
+              const hasLink = Boolean(cand.campaign_id)
+              const placeholderPhoto = `https://img.usecurling.com/ppl/128?gender=${
+                cand.gender === 'FEMININO' ? 'female' : 'male'
+              }&seed=${cand.candidate_number || cand.id}`
+
+              return (
+                <div
+                  key={cand.id}
+                  onClick={() => handleOpenDetails(cand)}
+                  className="p-3.5 hover:bg-slate-50 transition-colors cursor-pointer space-y-2.5 active:bg-slate-100/70"
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative shrink-0">
+                        <img
+                          src={placeholderPhoto}
+                          alt={cand.candidate_name}
+                          className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-xs"
+                        />
+                        {hasLink && (
+                          <div
+                            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white"
+                            title="Vinculado à campanha"
+                          >
+                            <Link2 className="w-2.5 h-2.5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-900 text-sm truncate flex items-center gap-1.5">
+                          {cand.social_name || cand.candidate_name}
+                          {cand.election_year && (
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] px-1 py-0 h-4 font-mono shrink-0 ${
+                                cand.election_year === '2026'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                  : 'bg-slate-50 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {cand.election_year}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate">
+                          {cand.candidate_name}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 block">
+                        {cand.candidate_number}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-xs text-slate-600 pt-1 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Badge
+                        variant="outline"
+                        className="font-bold text-[10px] text-slate-700 px-1.5 py-0 h-4 shrink-0"
+                      >
+                        {cand.party}
+                      </Badge>
+                      <span className="font-medium text-[11px] truncate">{cand.position}</span>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-slate-500 text-[11px] truncate">{cand.city_name}</span>
+                    </div>
+
+                    <div className="shrink-0">{getStatusBadge(cand.status)}</div>
+                  </div>
+
+                  {hasLink && cand.expand?.campaign_id && (
+                    <div className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-semibold flex items-center gap-1">
+                      <UserCheck className="w-3 h-3 text-emerald-600" />
+                      Vinculado: {cand.expand.campaign_id.name}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Full Data Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold tracking-wider text-[10px]">
@@ -618,11 +721,11 @@ export const CandidatesPage: React.FC = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
-          <div>
+        <div className="p-3 sm:p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
+          <div className="text-center sm:text-left">
             Mostrando <span className="font-bold text-slate-700">{candidates.length}</span> de{' '}
             <span className="font-bold text-slate-700">{totalCount.toLocaleString('pt-BR')}</span>{' '}
-            candidatos (Página {page} de {totalPages})
+            candidatos (Pág. {page} de {totalPages})
           </div>
 
           <div className="flex items-center gap-2">
@@ -631,11 +734,11 @@ export const CandidatesPage: React.FC = () => {
               size="sm"
               disabled={page <= 1 || loading}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="h-8 text-xs font-semibold"
+              className="h-8 text-xs font-semibold px-2.5"
             >
               <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Anterior
             </Button>
-            <span className="px-2 font-bold text-slate-800">
+            <span className="px-2 font-bold text-slate-800 text-xs">
               {page} / {totalPages}
             </span>
             <Button
@@ -643,7 +746,7 @@ export const CandidatesPage: React.FC = () => {
               size="sm"
               disabled={page >= totalPages || loading}
               onClick={() => setPage((p) => p + 1)}
-              className="h-8 text-xs font-semibold"
+              className="h-8 text-xs font-semibold px-2.5"
             >
               Próximo <ChevronRight className="w-3.5 h-3.5 ml-1" />
             </Button>
@@ -653,36 +756,36 @@ export const CandidatesPage: React.FC = () => {
 
       {/* Candidate Details Drawer / Sheet */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent className="sm:max-w-lg overflow-y-auto bg-white p-6 space-y-6 text-slate-900">
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto bg-white p-4 sm:p-6 space-y-5 text-slate-900">
           {selectedCandidate && (
             <>
-              <SheetHeader className="space-y-3 pb-4 border-b border-slate-100">
-                <div className="flex items-start gap-4">
+              <SheetHeader className="space-y-3 pb-4 border-b border-slate-100 text-left">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <img
                     src={`https://img.usecurling.com/ppl/256?gender=${
                       selectedCandidate.gender === 'FEMININO' ? 'female' : 'male'
                     }&seed=${selectedCandidate.candidate_number || selectedCandidate.id}`}
                     alt={selectedCandidate.candidate_name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-500 shadow-md shrink-0"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-amber-500 shadow-md shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-black text-lg bg-amber-500 text-slate-950 px-2 py-0.5 rounded shadow-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono font-black text-base sm:text-lg bg-amber-500 text-slate-950 px-2 py-0.5 rounded shadow-xs">
                         {selectedCandidate.candidate_number}
                       </span>
                       <Badge
                         variant="outline"
-                        className="font-bold text-slate-800 border-slate-300"
+                        className="font-bold text-slate-800 border-slate-300 text-[11px]"
                       >
                         {selectedCandidate.party}
                       </Badge>
                       {getStatusBadge(selectedCandidate.status)}
                     </div>
 
-                    <SheetTitle className="text-lg font-black text-slate-900 mt-2 truncate">
+                    <SheetTitle className="text-base sm:text-lg font-black text-slate-900 mt-1.5 break-words">
                       {selectedCandidate.social_name || selectedCandidate.candidate_name}
                     </SheetTitle>
-                    <SheetDescription className="text-xs text-slate-500 truncate">
+                    <SheetDescription className="text-xs text-slate-500 break-words">
                       {selectedCandidate.position} • {selectedCandidate.city_name} (SP) • Eleição{' '}
                       {selectedCandidate.election_year || '2026'}
                     </SheetDescription>

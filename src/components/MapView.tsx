@@ -405,62 +405,14 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   }, [selectedMemberId, teamLocations])
 
-  const [internalHeatmap, setInternalHeatmap] = useState(showHeatmap)
-  const [internalSupport, setInternalSupport] = useState(showSupportPoints)
-  const [internalTeam, setInternalTeam] = useState(showTeam)
-  const [internalTerritories, setInternalTerritories] = useState(showTerritoryBoundaries)
-
   return (
-    <div
-      className={`relative w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm ${className}`}
-      style={{ height }}
-    >
+    <div className={`relative w-full h-full overflow-hidden ${className}`} style={{ height }}>
       <style>{`
         @keyframes teamPulse {
           0% { transform: scale(0.6); opacity: 0.8; }
           100% { transform: scale(1.4); opacity: 0; }
         }
       `}</style>
-
-      {/* On-map Quick Layer Pills */}
-      <div className="absolute top-3 right-3 z-[400] flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-700/80 shadow-lg">
-        <button
-          type="button"
-          onClick={() => {
-            setInternalHeatmap(!internalHeatmap)
-            renderMapLayers()
-          }}
-          className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${
-            internalHeatmap ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
-          }`}
-        >
-          🔥 Calor
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setInternalTeam(!internalTeam)
-            renderMapLayers()
-          }}
-          className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${
-            internalTeam ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:text-white'
-          }`}
-        >
-          ● Ao Vivo
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setInternalTerritories(!internalTerritories)
-            renderMapLayers()
-          }}
-          className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${
-            internalTerritories ? 'bg-indigo-500 text-white' : 'text-slate-300 hover:text-white'
-          }`}
-        >
-          ⬡ Polígonos
-        </button>
-      </div>
 
       <div ref={mapContainerRef} className="w-full h-full z-0" />
     </div>

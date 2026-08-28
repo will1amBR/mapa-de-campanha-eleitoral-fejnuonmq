@@ -117,10 +117,10 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   ]
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 w-full max-w-full overflow-x-hidden">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 w-full h-16 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between px-3 sm:px-6 shadow-md">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <header className="sticky top-0 z-40 w-full h-14 sm:h-16 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between px-2.5 sm:px-6 shadow-md">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1 mr-2">
           <button
             type="button"
             className="md:hidden p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 shrink-0"
@@ -131,17 +131,18 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           </button>
 
           <div
-            className="flex items-center gap-2 cursor-pointer min-w-0"
+            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer min-w-0"
             onClick={() => navigate('/dashboard')}
           >
-            <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
+            <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
               <Compass className="w-4 sm:w-5 h-4 sm:h-5 stroke-[2.5]" />
             </div>
-            <div className="min-w-0 hidden xs:block">
-              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white flex items-center gap-1 leading-none truncate">
-                Estrategista <span className="text-amber-400 font-semibold">Eleitoral</span>
+            <div className="min-w-0">
+              <span className="font-extrabold text-xs sm:text-base tracking-tight text-white flex items-center gap-1 leading-none truncate">
+                Estrategista{' '}
+                <span className="text-amber-400 font-semibold hidden sm:inline">Eleitoral</span>
               </span>
-              <span className="text-[9px] sm:text-[10px] text-slate-400 block font-medium truncate mt-0.5">
+              <span className="text-[8px] sm:text-[10px] text-slate-400 hidden sm:block font-medium truncate mt-0.5">
                 Inteligência TSE/IBGE
               </span>
             </div>
@@ -149,27 +150,29 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         {/* Campaign Switcher Dropdown & Actions */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {campaigns.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="bg-slate-800/80 border-slate-700 text-slate-100 hover:bg-slate-800 hover:text-white text-xs font-medium h-8 sm:h-9 max-w-[140px] sm:max-w-[240px] justify-between shadow-sm px-2 sm:px-3"
+                  className="bg-slate-800/90 border-slate-700 text-slate-100 hover:bg-slate-800 hover:text-white text-xs font-medium h-7 sm:h-9 max-w-[125px] xs:max-w-[150px] sm:max-w-[240px] justify-between shadow-sm px-2 sm:px-3"
                 >
                   <div className="flex items-center gap-1.5 truncate">
                     <span
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: currentCampaign?.color || '#F59E0B' }}
                     />
-                    <span className="truncate text-xs">{currentCampaign?.name || 'Campanha'}</span>
+                    <span className="truncate text-[11px] sm:text-xs">
+                      {currentCampaign?.name || 'Campanha'}
+                    </span>
                   </div>
-                  <ChevronDown className="w-3 h-3 ml-1 opacity-60 shrink-0" />
+                  <ChevronDown className="w-3 h-3 ml-0.5 sm:ml-1 opacity-60 shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-64 bg-slate-900 border-slate-800 text-slate-100 p-1"
+                className="w-64 bg-slate-900 border-slate-800 text-slate-100 p-1 z-50"
               >
                 <DropdownMenuLabel className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider px-2 py-1.5">
                   Campanhas Ativas
@@ -207,7 +210,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             <TooltipTrigger asChild>
               <button
                 onClick={isTracking ? stopTracking : startTracking}
-                className={`hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all duration-300 ${
+                className={`hidden md:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all duration-300 ${
                   isTracking
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                     : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-slate-200'
@@ -237,7 +240,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-9 w-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-0"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-0 shrink-0"
               >
                 <span className="font-bold text-xs uppercase">
                   {user?.name ? user.name.charAt(0) : user?.email ? user.email.charAt(0) : 'U'}
@@ -246,14 +249,14 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-56 bg-slate-900 border-slate-800 text-slate-100"
+              className="w-56 bg-slate-900 border-slate-800 text-slate-100 z-50"
             >
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-xs font-semibold text-slate-100 leading-none">
                     {user?.name || 'Membro da Campanha'}
                   </p>
-                  <p className="text-[11px] leading-none text-slate-400">{user?.email}</p>
+                  <p className="text-[11px] leading-none text-slate-400 truncate">{user?.email}</p>
                   <div className="pt-1">
                     <Badge
                       variant="outline"
@@ -300,7 +303,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Body */}
-      <div className="flex flex-1 overflow-hidden min-w-0">
+      <div className="flex flex-1 overflow-hidden min-w-0 w-full">
         {' '}
         {/* Desktop Collapsible Sidebar */}
         <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 text-slate-300 shrink-0 select-none">
@@ -477,7 +480,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         )}
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 pb-16 md:pb-0">
+        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full pb-16 md:pb-0">
           {children}
         </main>
       </div>
