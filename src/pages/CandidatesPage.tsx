@@ -59,6 +59,7 @@ export const CandidatesPage: React.FC = () => {
   const [positionFilter, setPositionFilter] = useState('ALL')
   const [partyFilter, setPartyFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [yearFilter, setYearFilter] = useState('ALL')
   const [sortField, setSortField] = useState<
     'candidate_name' | 'candidate_number' | 'city_name' | 'party' | 'position'
   >('candidate_name')
@@ -96,6 +97,9 @@ export const CandidatesPage: React.FC = () => {
       if (statusFilter !== 'ALL') {
         filterConditions.push(`status = "${statusFilter}"`)
       }
+      if (yearFilter !== 'ALL') {
+        filterConditions.push(`election_year = "${yearFilter}"`)
+      }
 
       const filter = filterConditions.length > 0 ? filterConditions.join(' && ') : ''
       const sort = `${sortDirection === 'desc' ? '-' : ''}${sortField}`
@@ -118,7 +122,16 @@ export const CandidatesPage: React.FC = () => {
 
   useEffect(() => {
     fetchCandidates()
-  }, [page, cityFilter, positionFilter, partyFilter, statusFilter, sortField, sortDirection])
+  }, [
+    page,
+    cityFilter,
+    positionFilter,
+    partyFilter,
+    statusFilter,
+    yearFilter,
+    sortField,
+    sortDirection,
+  ])
 
   // Debounced text search
   useEffect(() => {
@@ -132,15 +145,18 @@ export const CandidatesPage: React.FC = () => {
   // Extract distinct lists for filter dropdowns
   const [allCities, setAllCities] = useState<string[]>([])
   const [allParties, setAllParties] = useState<string[]>([])
+  const [allPositions, setAllPositions] = useState<string[]>([])
 
   useEffect(() => {
     pb.collection('candidates')
-      .getFullList<Candidate>({ fields: 'city_name,party' })
+      .getFullList<Candidate>({ fields: 'city_name,party,position' })
       .then((records) => {
         const cities = Array.from(new Set(records.map((r) => r.city_name).filter(Boolean))).sort()
         const parties = Array.from(new Set(records.map((r) => r.party).filter(Boolean))).sort()
+        const positions = Array.from(new Set(records.map((r) => r.position).filter(Boolean))).sort()
         setAllCities(cities)
         setAllParties(parties)
+        setAllPositions(positions)
       })
       .catch(() => {})
   }, [])
@@ -223,7 +239,7 @@ export const CandidatesPage: React.FC = () => {
         <div className="min-w-0 w-full sm:w-auto">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge className="bg-amber-500 text-slate-950 font-bold px-2.5 py-0.5 text-xs shrink-0">
-              BASE TSE OFICIAL SP 2024
+              BASE TSE OFICIAL SP (2024 / 2026)
             </Badge>
             <span className="text-xs text-slate-300 truncate">
               Consulta de Candidaturas Eleitorais
@@ -233,7 +249,8 @@ export const CandidatesPage: React.FC = () => {
             Candidaturas de São Paulo
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-1 break-words">
-            Pesquise, filtre dados da Justiça Eleitoral e vincule candidatos à campanha.
+            Pesquise, filtre dados da Justiça Eleitoral (Deputado Estadual, Federal, Prefeito e
+            Vereador) e vincule candidatos à campanha.
           </p>
         </div>
 
@@ -248,9 +265,9 @@ export const CandidatesPage: React.FC = () => {
       {/* Filter and Search Bar */}
       <Card className="border-slate-200 shadow-sm bg-white">
         <CardContent className="p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             {/* Search Input */}
-            <div className="lg:col-span-2 relative">
+            <div className="sm:col-span-2 lg:col-span-2 relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <Input
                 placeholder="Buscar por nome, número ou nome social..."
@@ -258,6 +275,65 @@ export const CandidatesPage: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 text-xs sm:text-sm h-10 border-slate-200"
               />
+            </div>
+
+            {/* Position filter */}
+            <div>
+              <Select
+                value={positionFilter}
+                onValueChange={(v) => {
+                  setPositionFilter(v)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                  <SelectValue placeholder="Cargo" />
+                </SelectTrigger>
+                <SelectContent className="bg-white max-h-60">
+                  <SelectItem value="ALL">Todos os Cargos</SelectItem>
+                  <SelectItem value="Deputado Estadual">Deputado Estadual</SelectItem>
+                  <SelectItem value="Deputado Federal">Deputado Federal</SelectItem>
+                  <SelectItem value="Prefeito">Prefeito</SelectItem>
+                  <SelectItem value="Vice-prefeito">Vice-prefeito</SelectItem>
+                  <SelectItem value="Vereador">Vereador</SelectItem>
+                  {allPositions
+                    .filter(
+                      (p) =>
+                        ![
+                          'Deputado Estadual',
+                          'Deputado Federal',
+                          'Prefeito',
+                          'Vice-prefeito',
+                          'Vereador',
+                        ].includes(p),
+                    )
+                    .map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Year filter */}
+            <div>
+              <Select
+                value={yearFilter}
+                onValueChange={(v) => {
+                  setYearFilter(v)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
+                  <SelectValue placeholder="Eleição" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="ALL">Todas as Eleições</SelectItem>
+                  <SelectItem value="2026">Eleições 2026</SelectItem>
+                  <SelectItem value="2024">Eleições 2024</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* City filter */}
@@ -283,27 +359,6 @@ export const CandidatesPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Position filter */}
-            <div>
-              <Select
-                value={positionFilter}
-                onValueChange={(v) => {
-                  setPositionFilter(v)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="h-10 text-xs sm:text-sm border-slate-200">
-                  <SelectValue placeholder="Cargo" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="ALL">Todos os Cargos</SelectItem>
-                  <SelectItem value="Prefeito">Prefeito</SelectItem>
-                  <SelectItem value="Vice-prefeito">Vice-prefeito</SelectItem>
-                  <SelectItem value="Vereador">Vereador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Status filter */}
             <div>
               <Select
@@ -318,6 +373,7 @@ export const CandidatesPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   <SelectItem value="ALL">Todas as Situações</SelectItem>
+                  <SelectItem value="Aguardando julgamento">Aguardando julgamento</SelectItem>
                   <SelectItem value="Deferido">Deferido</SelectItem>
                   <SelectItem value="Indeferido">Indeferido</SelectItem>
                   <SelectItem value="Renúncia">Renúncia / Cassado</SelectItem>
@@ -329,6 +385,7 @@ export const CandidatesPage: React.FC = () => {
           {/* Active filters pill list */}
           {(cityFilter !== 'ALL' ||
             positionFilter !== 'ALL' ||
+            yearFilter !== 'ALL' ||
             statusFilter !== 'ALL' ||
             searchQuery) && (
             <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs text-slate-500">
@@ -338,14 +395,19 @@ export const CandidatesPage: React.FC = () => {
                   Busca: "{searchQuery}"
                 </Badge>
               )}
-              {cityFilter !== 'ALL' && (
+              {yearFilter !== 'ALL' && (
                 <Badge variant="secondary" className="text-[11px] gap-1">
-                  Cidade: {cityFilter}
+                  Eleição: {yearFilter}
                 </Badge>
               )}
               {positionFilter !== 'ALL' && (
                 <Badge variant="secondary" className="text-[11px] gap-1">
                   Cargo: {positionFilter}
+                </Badge>
+              )}
+              {cityFilter !== 'ALL' && (
+                <Badge variant="secondary" className="text-[11px] gap-1">
+                  Cidade: {cityFilter}
                 </Badge>
               )}
               {statusFilter !== 'ALL' && (
@@ -362,6 +424,7 @@ export const CandidatesPage: React.FC = () => {
                   setPositionFilter('ALL')
                   setPartyFilter('ALL')
                   setStatusFilter('ALL')
+                  setYearFilter('ALL')
                   setPage(1)
                 }}
                 className="h-6 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
@@ -468,6 +531,18 @@ export const CandidatesPage: React.FC = () => {
                           <div>
                             <div className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
                               {cand.social_name || cand.candidate_name}
+                              {cand.election_year && (
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[9px] px-1 py-0 h-4 font-mono ${
+                                    cand.election_year === '2026'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                      : 'bg-slate-50 text-slate-600 border-slate-200'
+                                  }`}
+                                >
+                                  {cand.election_year}
+                                </Badge>
+                              )}
                               {cand.is_reelection && (
                                 <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1 py-0 h-4">
                                   Reeleição
@@ -608,7 +683,8 @@ export const CandidatesPage: React.FC = () => {
                       {selectedCandidate.social_name || selectedCandidate.candidate_name}
                     </SheetTitle>
                     <SheetDescription className="text-xs text-slate-500 truncate">
-                      {selectedCandidate.position} • {selectedCandidate.city_name} (SP)
+                      {selectedCandidate.position} • {selectedCandidate.city_name} (SP) • Eleição{' '}
+                      {selectedCandidate.election_year || '2026'}
                     </SheetDescription>
                   </div>
                 </div>
