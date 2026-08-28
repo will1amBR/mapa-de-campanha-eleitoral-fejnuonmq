@@ -108,16 +108,18 @@ export const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
-      <div className="bg-slate-900 p-6 rounded-2xl text-white shadow-lg border border-slate-800 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase">
+    <div className="p-3 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full min-w-0 overflow-x-hidden">
+      <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-bold text-xs uppercase shrink-0">
               Configurações & Governança
             </Badge>
           </div>
-          <h1 className="text-2xl font-black">Gerenciamento da Conta & Campanhas</h1>
-          <p className="text-xs text-slate-300 mt-1">
+          <h1 className="text-xl sm:text-2xl font-black break-words">
+            Gerenciamento da Conta & Campanhas
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 break-words">
             Altere seus dados de coordenador e crie novas campanhas multi-político.
           </p>
         </div>
@@ -214,20 +216,20 @@ export const SettingsPage: React.FC = () => {
 
       {/* Multi-Campaign Management Section */}
       <Card className="border-slate-200/80 shadow-sm bg-white">
-        <CardHeader className="border-b border-slate-100 p-4 sm:p-6 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-amber-500" /> Campanhas Eleitorais Ativas (
+        <CardHeader className="border-b border-slate-100 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 truncate">
+              <Layers className="w-5 h-5 text-amber-500 shrink-0" /> Campanhas Eleitorais Ativas (
               {campaigns.length})
             </CardTitle>
-            <CardDescription className="text-xs text-slate-500">
+            <CardDescription className="text-xs text-slate-500 truncate">
               Arquitetura multi-político para gerenciar múltiplos candidatos na mesma plataforma
             </CardDescription>
           </div>
           <Button
             size="sm"
             onClick={() => setCampaignModalOpen(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 w-full sm:w-auto justify-center"
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Criar Campanha
           </Button>
@@ -236,26 +238,26 @@ export const SettingsPage: React.FC = () => {
           {campaigns.map((c) => (
             <div
               key={c.id}
-              className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+              className={`p-3.5 sm:p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-all min-w-0 ${
                 currentCampaign?.id === c.id
                   ? 'bg-amber-500/10 border-amber-500/40'
                   : 'bg-slate-50 border-slate-200'
               }`}
             >
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: c.color || '#F59E0B' }}
                   />
-                  <span className="font-bold text-slate-900 text-sm">{c.name}</span>
+                  <span className="font-bold text-slate-900 text-sm truncate">{c.name}</span>
                   {currentCampaign?.id === c.id && (
-                    <Badge className="bg-amber-500 text-slate-950 text-[10px] font-bold">
+                    <Badge className="bg-amber-500 text-slate-950 text-[10px] font-bold shrink-0">
                       SELECIONADA
                     </Badge>
                   )}
                 </div>
-                <div className="text-xs text-slate-600 mt-1">
+                <div className="text-xs text-slate-600 mt-1 break-words">
                   Candidato: <strong>{c.candidate_name}</strong> • Partido:{' '}
                   <strong>{c.party}</strong> • Meta:{' '}
                   <strong>{(c.target_votes || 0).toLocaleString('pt-BR')} votos</strong>

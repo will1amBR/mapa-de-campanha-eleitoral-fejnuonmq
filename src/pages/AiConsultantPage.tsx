@@ -171,22 +171,24 @@ Como posso ajudar sua coordenação hoje? Você pode me perguntar:
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full flex flex-col h-[calc(100vh-5rem)]">
+    <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-5xl mx-auto w-full flex flex-col h-[calc(100vh-4.5rem)] min-w-0 overflow-x-hidden">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 p-5 rounded-2xl text-white shadow-lg border border-slate-700/60 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20">
-            <Brain className="w-6 h-6 stroke-[2.5]" />
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 p-4 sm:p-5 rounded-2xl text-white shadow-lg border border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20 shrink-0">
+            <Brain className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight">Estrategista IA</h1>
-              <Badge className="bg-amber-400 text-slate-950 text-[10px] font-bold">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight truncate">
+                Estrategista IA
+              </h1>
+              <Badge className="bg-amber-400 text-slate-950 text-[9px] sm:text-[10px] font-bold shrink-0">
                 TIER REASONING
               </Badge>
             </div>
-            <p className="text-xs text-slate-300">
-              Consultoria Eleitoral Sênior com Acesso às Tabelas de Campo & Demografia TSE/IBGE
+            <p className="text-[11px] sm:text-xs text-slate-300 truncate">
+              Consultoria Eleitoral com Tabelas de Campo & Demografia TSE/IBGE
             </p>
           </div>
         </div>
@@ -205,7 +207,7 @@ Como posso ajudar sua coordenação hoje? Você pode me perguntar:
               },
             ])
           }}
-          className="bg-slate-800 border-slate-700 text-xs text-slate-200 hover:bg-slate-700 h-8"
+          className="bg-slate-800 border-slate-700 text-xs text-slate-200 hover:bg-slate-700 h-8 shrink-0 w-full sm:w-auto justify-center"
         >
           <RefreshCw className="w-3 h-3 mr-1" /> Novo Tópico
         </Button>

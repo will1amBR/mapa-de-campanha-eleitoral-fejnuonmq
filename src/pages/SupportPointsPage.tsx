@@ -140,7 +140,7 @@ export const SupportPointsPage: React.FC = () => {
 
         <Button
           onClick={() => setDialogOpen(true)}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-normal"
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-nowrap shrink-0"
         >
           <Plus className="w-4 h-4 mr-1.5 shrink-0" /> Novo Ponto de Apoio
         </Button>

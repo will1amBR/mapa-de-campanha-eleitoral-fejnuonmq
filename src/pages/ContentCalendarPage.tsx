@@ -371,27 +371,29 @@ export const ContentCalendarPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 rounded-2xl text-white shadow-lg border border-slate-700/50">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="bg-amber-500 text-slate-950 font-bold px-2.5 py-0.5 text-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-700/50 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge className="bg-amber-500 text-slate-950 font-bold px-2.5 py-0.5 text-xs shrink-0">
               PLANEJAMENTO DIGITAL
             </Badge>
-            <span className="text-xs text-slate-300">Calendário de Conteúdo Eleitoral</span>
+            <span className="text-xs text-slate-300 truncate">
+              Calendário de Conteúdo Eleitoral
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight break-words">
             Calendário de Postagens & Redes
           </h1>
-          <p className="text-sm text-slate-300 mt-1">
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 break-words">
             Programe e monitore a distribuição de conteúdo em todas as redes sociais da campanha.
           </p>
         </div>
 
         <Button
           onClick={() => openNewPostModal()}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-10 px-4 shrink-0"
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-4 shrink-0 w-full sm:w-auto justify-center"
         >
-          <Plus className="w-4 h-4 mr-1.5" /> Nova Postagem
+          <Plus className="w-4 h-4 mr-1.5 shrink-0" /> Nova Postagem
         </Button>
       </div>
 

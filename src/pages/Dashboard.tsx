@@ -428,14 +428,14 @@ export const Dashboard: React.FC = () => {
           <Button
             onClick={() => setOnboardingOpen(true)}
             variant="outline"
-            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-amber-400 font-semibold h-9 sm:h-10 px-3 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-normal"
+            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-amber-400 font-semibold h-9 sm:h-10 px-3 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[120px]"
           >
             <Compass className="w-4 h-4 mr-1.5 shrink-0" /> Guia de Início
           </Button>
           <Button
             onClick={() => navigate('/team')}
             data-conversion="field_checkin_cta"
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-normal"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[130px]"
           >
             <Flame className="w-4 h-4 mr-1.5 shrink-0" /> Novo Check-in
           </Button>
@@ -443,7 +443,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate('/ai-consultant')}
             data-conversion="ai_consultant_cta"
             variant="outline"
-            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-normal"
+            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-nowrap min-w-[130px]"
           >
             <Bot className="w-4 h-4 mr-1.5 text-amber-400 shrink-0" /> Estrategista IA
           </Button>

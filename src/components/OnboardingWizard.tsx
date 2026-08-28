@@ -71,18 +71,18 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           />
         </div>
 
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="p-4 sm:p-8 space-y-5 sm:space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-black shrink-0">
                 <Compass className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider truncate">
                 Tour Inicial do Coordenador
               </span>
             </div>
-            <Badge variant="outline" className="text-xs border-slate-700 text-slate-300">
+            <Badge variant="outline" className="text-xs border-slate-700 text-slate-300 shrink-0">
               Passo {step} de {totalSteps}
             </Badge>
           </div>
@@ -104,51 +104,51 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-2">
                 <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs space-y-1">
                   <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px] shrink-0">
                       01
                     </span>
                     Apoiadores
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 leading-snug">
                     Captação com QR Code, indicação e candidatos do TSE.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs space-y-1">
                   <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px] shrink-0">
                       02
                     </span>
                     Equipes
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 leading-snug">
                     Responsáveis, voluntários e planejamento de ações de rua.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs space-y-1">
                   <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px] shrink-0">
                       03
                     </span>
                     Campo
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 leading-snug">
                     Rastreamento GPS ao vivo, rotas e taxa de conversão.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs space-y-1">
                   <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px] shrink-0">
                       04
                     </span>
                     Território
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 leading-snug">
                     Setores do rascunho à publicação e inteligência IBGE.
                   </p>
                 </div>

@@ -253,19 +253,21 @@ export const TerritoryAnalysisPage: React.FC = () => {
   }, [territories, activities])
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-2xl text-white shadow-lg border border-slate-800">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge className="bg-indigo-500 text-white font-bold text-xs uppercase">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 sm:p-6 rounded-2xl text-white shadow-lg border border-slate-800 min-w-0">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <Badge className="bg-indigo-500 text-white font-bold text-xs uppercase shrink-0">
             Cruzamento Oficial TSE / Censo IBGE
           </Badge>
-          <span className="text-xs text-indigo-300">Inteligência Geo-Demográfica de Precisão</span>
+          <span className="text-xs text-indigo-300 truncate">
+            Inteligência Geo-Demográfica de Precisão
+          </span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight break-words">
           Análise Territorial & Explorer de Zonas Eleitorais
         </h1>
-        <p className="text-sm text-slate-300 mt-1 max-w-2xl">
+        <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl break-words">
           Cruze dados demográficos de renda, idade e escolaridade do IBGE com o histórico de
           quociente partidário do TSE para direcionar a militância onde cada hora trabalhada rende
           mais votos.

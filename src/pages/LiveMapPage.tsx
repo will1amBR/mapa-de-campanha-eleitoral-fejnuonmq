@@ -90,27 +90,27 @@ export const LiveMapPage: React.FC = () => {
   return (
     <div className="relative flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
       {/* Map Control Glassmorphism Bar (Top Overlay) */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900/85 backdrop-blur-md border border-slate-700/60 rounded-xl shadow-xl text-white">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+      <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-wrap items-center justify-between gap-2 p-2.5 sm:p-3 bg-slate-900/90 backdrop-blur-md border border-slate-700/60 rounded-xl shadow-xl text-white min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <Radio className="w-4 h-4 animate-pulse" />
           </div>
-          <div>
-            <h2 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
-              Rastreamento Tático de Campo
-              <Badge className="bg-emerald-500 text-slate-950 text-[9px] font-bold px-1.5 py-0 h-4">
+          <div className="min-w-0">
+            <h2 className="text-xs font-bold text-slate-100 flex items-center gap-1.5 flex-wrap">
+              <span className="truncate">Rastreamento de Campo</span>
+              <Badge className="bg-emerald-500 text-slate-950 text-[9px] font-bold px-1.5 py-0 h-4 shrink-0">
                 AO VIVO
               </Badge>
             </h2>
-            <p className="text-[10px] text-slate-400">
-              {teamLocations.length} membros mapeados • {activities.length} pontos de calor
+            <p className="text-[10px] text-slate-400 truncate">
+              {teamLocations.length} membros • {activities.length} ações
             </p>
           </div>
         </div>
 
         {/* Layer Toggles */}
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center space-x-1.5">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap">
+          <div className="flex items-center space-x-1">
             <Switch
               id="layer-team"
               checked={showTeam}
@@ -119,13 +119,13 @@ export const LiveMapPage: React.FC = () => {
             />
             <Label
               htmlFor="layer-team"
-              className="text-[11px] text-slate-300 font-medium cursor-pointer flex items-center gap-1"
+              className="text-[10px] sm:text-[11px] text-slate-300 font-medium cursor-pointer flex items-center gap-1"
             >
               <Users className="w-3 h-3 text-emerald-400" /> Equipe
             </Label>
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1">
             <Switch
               id="layer-heat"
               checked={showHeatmap}
@@ -134,13 +134,13 @@ export const LiveMapPage: React.FC = () => {
             />
             <Label
               htmlFor="layer-heat"
-              className="text-[11px] text-slate-300 font-medium cursor-pointer flex items-center gap-1"
+              className="text-[10px] sm:text-[11px] text-slate-300 font-medium cursor-pointer flex items-center gap-1"
             >
-              <Flame className="w-3 h-3 text-amber-400" /> Calor/Atividades
+              <Flame className="w-3 h-3 text-amber-400" /> Calor
             </Label>
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1">
             <Switch
               id="layer-sp"
               checked={showSupportPoints}
@@ -149,13 +149,13 @@ export const LiveMapPage: React.FC = () => {
             />
             <Label
               htmlFor="layer-sp"
-              className="text-[11px] text-slate-300 font-medium cursor-pointer flex items-center gap-1"
+              className="text-[10px] sm:text-[11px] text-slate-300 font-medium cursor-pointer flex items-center gap-1"
             >
               <Building2 className="w-3 h-3 text-blue-400" /> Comitês
             </Label>
           </div>
 
-          <div className="hidden sm:flex items-center space-x-1.5">
+          <div className="hidden sm:flex items-center space-x-1">
             <Switch
               id="layer-terr"
               checked={showTerritories}
@@ -174,10 +174,10 @@ export const LiveMapPage: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={() => setDrawerOpen(!drawerOpen)}
-            className="h-7 text-xs bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 px-2"
+            className="h-7 text-xs bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 px-2 shrink-0"
           >
             {drawerOpen ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-            {drawerOpen ? 'Ocultar Painel' : 'Ver Equipe'}
+            {drawerOpen ? 'Ocultar' : 'Equipe'}
           </Button>
         </div>
       </div>
@@ -200,7 +200,7 @@ export const LiveMapPage: React.FC = () => {
 
         {/* Floating Side Drawer for Active Team Members */}
         {drawerOpen && (
-          <div className="absolute top-20 right-4 bottom-4 w-80 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-white transition-all animate-fade-in-up">
+          <div className="absolute top-16 sm:top-20 right-3 left-3 sm:left-auto sm:right-4 bottom-3 sm:bottom-4 sm:w-80 z-20 bg-slate-900/95 backdrop-blur-md border border-slate-700/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-white transition-all animate-fade-in-up">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-amber-400" />

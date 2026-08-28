@@ -435,11 +435,11 @@ export const TeamFieldPage: React.FC = () => {
         </div>
 
         {/* Big GPS Toggle Button */}
-        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto shrink-0">
           <Button
             size="lg"
             onClick={isTracking ? stopTracking : startTracking}
-            className={`w-full md:w-auto font-bold h-11 sm:h-12 px-4 sm:px-6 shadow-xl transition-all text-xs sm:text-sm whitespace-normal justify-center ${
+            className={`w-full md:w-auto font-bold h-11 sm:h-12 px-4 sm:px-6 shadow-xl transition-all text-xs sm:text-sm whitespace-nowrap justify-center truncate ${
               isTracking
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-900/30'
@@ -448,7 +448,9 @@ export const TeamFieldPage: React.FC = () => {
             <Radio
               className={`w-4 sm:w-5 h-4 sm:h-5 mr-1.5 shrink-0 ${isTracking ? 'animate-spin' : ''}`}
             />
-            {isTracking ? 'Parar Rastreamento GPS' : 'Iniciar Rastreamento GPS'}
+            <span className="truncate">
+              {isTracking ? 'Parar GPS' : 'Iniciar Rastreamento GPS'}
+            </span>
           </Button>
         </div>
       </div>
