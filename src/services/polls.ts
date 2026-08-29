@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbase/client'
+import { notificationsService } from './notifications'
 import type {
   Poll,
   PollScenario,
@@ -165,12 +166,14 @@ export const pollsService = {
         // 1. Perdeu a liderança (estava em 1º e caiu para 2º ou inferior)
         if (prevRank === 1 && currRank > 1) {
           if (!hasAlert(curr.id, 'lost_lead')) {
+            const alertTitle = 'Alerta Crítico de Virada: Perda de Liderança'
+            const alertSummary = `O candidato perdeu a 1ª colocação (caiu para ${currRank}º lugar com ${curr.our_candidate_percentage}%) na pesquisa ${curr.institute} de ${currDateStr}. Na rodada anterior (${prevDateStr}), liderava com ${prev.our_candidate_percentage}%.`
             const alert = await pb.collection('poll_alerts').create<PollAlert>({
               campaign_id: campaignId,
               poll_id: curr.id,
               alert_type: 'lost_lead',
-              title: 'Alerta Crítico de Virada: Perda de Liderança',
-              summary: `O candidato perdeu a 1ª colocação (caiu para ${currRank}º lugar com ${curr.our_candidate_percentage}%) na pesquisa ${curr.institute} de ${currDateStr}. Na rodada anterior (${prevDateStr}), liderava com ${prev.our_candidate_percentage}%.`,
+              title: alertTitle,
+              summary: alertSummary,
               severity: 'critical',
               status: 'active',
               detected_at: curr.poll_date || new Date().toISOString(),
@@ -185,18 +188,34 @@ export const pollsService = {
               },
             })
             createdAlerts.push(alert)
+
+            // In-app persistent notification for critical turnaround
+            try {
+              await notificationsService.createNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                type: 'poll_alert',
+                severity: 'critical',
+                link: '/polls',
+              })
+            } catch (notifErr) {
+              console.warn('Failed to dispatch notification for lost_lead:', notifErr)
+            }
           }
         }
 
         // 2. Assumiu a liderança (estava em 2º ou inferior e passou para 1º)
         if (prevRank > 1 && currRank === 1) {
           if (!hasAlert(curr.id, 'gain_lead')) {
+            const alertTitle = 'Virada Positiva: Assumiu a Liderança!'
+            const alertSummary = `O candidato assumiu o 1º lugar com ${curr.our_candidate_percentage}% na pesquisa ${curr.institute} de ${currDateStr} (estava em ${prevRank}º lugar na rodada de ${prevDateStr}).`
             const alert = await pb.collection('poll_alerts').create<PollAlert>({
               campaign_id: campaignId,
               poll_id: curr.id,
               alert_type: 'gain_lead',
-              title: 'Virada Positiva: Assumiu a Liderança!',
-              summary: `O candidato assumiu o 1º lugar com ${curr.our_candidate_percentage}% na pesquisa ${curr.institute} de ${currDateStr} (estava em ${prevRank}º lugar na rodada de ${prevDateStr}).`,
+              title: alertTitle,
+              summary: alertSummary,
               severity: 'positive',
               status: 'active',
               detected_at: curr.poll_date || new Date().toISOString(),
@@ -211,6 +230,20 @@ export const pollsService = {
               },
             })
             createdAlerts.push(alert)
+
+            // In-app notification for positive lead turnaround
+            try {
+              await notificationsService.createNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                type: 'poll_alert',
+                severity: 'positive',
+                link: '/polls',
+              })
+            } catch (notifErr) {
+              console.warn('Failed to dispatch notification for gain_lead:', notifErr)
+            }
           }
         }
 
@@ -218,13 +251,16 @@ export const pollsService = {
         if (diffPp <= -3.0) {
           if (!hasAlert(curr.id, 'drop_significant')) {
             const isSevere = diffPp <= -5.0 || currRank > prevRank
+            const alertSeverity = isSevere ? 'critical' : 'warning'
+            const alertTitle = `Alerta de Tendência: Queda de ${Math.abs(diffPp).toString().replace('.', ',')} p.p.`
+            const alertSummary = `Recuo acentuado de ${prev.our_candidate_percentage}% para ${curr.our_candidate_percentage}% (${diffPp.toString().replace('.', ',')} p.p.) detectado no levantamento ${curr.institute} (${currDateStr}) em relação a ${prevDateStr}.`
             const alert = await pb.collection('poll_alerts').create<PollAlert>({
               campaign_id: campaignId,
               poll_id: curr.id,
               alert_type: 'drop_significant',
-              title: `Alerta de Tendência: Queda de ${Math.abs(diffPp).toString().replace('.', ',')} p.p.`,
-              summary: `Recuo acentuado de ${prev.our_candidate_percentage}% para ${curr.our_candidate_percentage}% (${diffPp.toString().replace('.', ',')} p.p.) detectado no levantamento ${curr.institute} (${currDateStr}) em relação a ${prevDateStr}.`,
-              severity: isSevere ? 'critical' : 'warning',
+              title: alertTitle,
+              summary: alertSummary,
+              severity: alertSeverity,
               status: 'active',
               detected_at: curr.poll_date || new Date().toISOString(),
               diff_pp: diffPp,
@@ -236,18 +272,34 @@ export const pollsService = {
               },
             })
             createdAlerts.push(alert)
+
+            // In-app notification for warning / critical drop
+            try {
+              await notificationsService.createNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                type: 'poll_alert',
+                severity: alertSeverity,
+                link: '/polls',
+              })
+            } catch (notifErr) {
+              console.warn('Failed to dispatch notification for drop_significant:', notifErr)
+            }
           }
         }
 
         // 4. Crescimento significativo de 3 p.p. ou mais
         if (diffPp >= 3.0) {
           if (!hasAlert(curr.id, 'rise_significant')) {
+            const alertTitle = `Momento Positivo: Crescimento de +${diffPp.toString().replace('.', ',')} p.p.`
+            const alertSummary = `Avanço consistente de ${prev.our_candidate_percentage}% para ${curr.our_candidate_percentage}% (+${diffPp.toString().replace('.', ',')} p.p.) na pesquisa ${curr.institute} de ${currDateStr}.`
             const alert = await pb.collection('poll_alerts').create<PollAlert>({
               campaign_id: campaignId,
               poll_id: curr.id,
               alert_type: 'rise_significant',
-              title: `Momento Positivo: Crescimento de +${diffPp.toString().replace('.', ',')} p.p.`,
-              summary: `Avanço consistente de ${prev.our_candidate_percentage}% para ${curr.our_candidate_percentage}% (+${diffPp.toString().replace('.', ',')} p.p.) na pesquisa ${curr.institute} de ${currDateStr}.`,
+              title: alertTitle,
+              summary: alertSummary,
               severity: 'positive',
               status: 'active',
               detected_at: curr.poll_date || new Date().toISOString(),
@@ -260,6 +312,20 @@ export const pollsService = {
               },
             })
             createdAlerts.push(alert)
+
+            // In-app notification for significant rise
+            try {
+              await notificationsService.createNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                type: 'poll_alert',
+                severity: 'positive',
+                link: '/polls',
+              })
+            } catch (notifErr) {
+              console.warn('Failed to dispatch notification for rise_significant:', notifErr)
+            }
           }
         }
       }

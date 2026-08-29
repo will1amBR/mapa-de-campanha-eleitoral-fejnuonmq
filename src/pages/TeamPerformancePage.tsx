@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
+import { generateTeamPerformancePdfReport } from '@/services/teamPerformancePdfReport'
+import { toast } from 'sonner'
 import type { UserRecord, Activity, TeamLocation } from '@/types/campaign'
 import {
   Users,
@@ -22,6 +24,7 @@ import {
   BarChart3,
   ChevronRight,
   ShieldAlert,
+  FileDown,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -236,6 +239,42 @@ export const TeamPerformancePage: React.FC = () => {
     )
   }, [membersMetrics, searchMember])
 
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  const handleExportPdf = () => {
+    if (!currentCampaign) {
+      toast.error('Nenhuma campanha ativa selecionada.')
+      return
+    }
+
+    try {
+      setExportingPdf(true)
+      const dateLabel =
+        dateFilter === '7'
+          ? 'Últimos 7 dias'
+          : dateFilter === '14'
+            ? 'Últimos 14 dias'
+            : dateFilter === '30'
+              ? 'Últimos 30 dias'
+              : 'Todo o período'
+
+      const doc = generateTeamPerformancePdfReport({
+        campaign: currentCampaign,
+        dateFilterLabel: dateLabel,
+        metrics: membersMetrics,
+      })
+
+      const filename = `relatorio_equipe_${currentCampaign.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
+      doc.save(filename)
+      toast.success('Relatório da equipe em PDF gerado com sucesso!')
+    } catch (err) {
+      console.error('Error generating team performance PDF:', err)
+      toast.error('Erro ao gerar relatório em PDF')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   if (!isAuthorized) {
     return (
       <div className="p-8 max-w-2xl mx-auto text-center space-y-4">
@@ -274,23 +313,34 @@ export const TeamPerformancePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Global Date Filter Selector */}
-        <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 w-full md:w-auto">
-          <Filter className="w-4 h-4 text-slate-400 ml-1.5 shrink-0" />
-          <Select
-            value={dateFilter}
-            onValueChange={(val: 'all' | '7' | '14' | '30') => setDateFilter(val)}
+        {/* Actions: Date Filter & Export PDF Button */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-slate-400 ml-1.5 shrink-0" />
+            <Select
+              value={dateFilter}
+              onValueChange={(val: 'all' | '7' | '14' | '30') => setDateFilter(val)}
+            >
+              <SelectTrigger className="bg-slate-900 text-white border-slate-700 text-xs h-8 w-full sm:w-36">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 text-white border-slate-800 text-xs">
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="14">Últimos 14 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="all">Todo o período</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            onClick={handleExportPdf}
+            disabled={exportingPdf || membersMetrics.length === 0}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-9 sm:h-11 px-4 shadow-lg shadow-amber-500/20 flex-1 sm:flex-none justify-center shrink-0"
           >
-            <SelectTrigger className="bg-slate-900 text-white border-slate-700 text-xs h-8 w-full md:w-36">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-900 text-white border-slate-800 text-xs">
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="14">Últimos 14 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="all">Todo o período</SelectItem>
-            </SelectContent>
-          </Select>
+            <FileDown className="w-4 h-4 mr-1.5 stroke-[2.5]" />
+            {exportingPdf ? 'Gerando...' : 'Exportar PDF'}
+          </Button>
         </div>
       </div>
 

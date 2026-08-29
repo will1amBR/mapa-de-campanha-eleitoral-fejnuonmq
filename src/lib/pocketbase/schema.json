@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T04:34:16.779Z",
+  "generatedAt": "2026-08-29T04:44:58.236Z",
   "collections": [
     {
       "name": "users",
@@ -1854,6 +1854,91 @@
         "CREATE INDEX idx_poll_alerts_camp ON poll_alerts (campaign_id)",
         "CREATE INDEX idx_poll_alerts_status ON poll_alerts (status)",
         "CREATE INDEX idx_poll_alerts_poll ON poll_alerts (poll_id)"
+      ]
+    },
+    {
+      "name": "notifications",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["poll_alert", "info", "achievement", "debate", "territory"]
+        },
+        {
+          "name": "severity",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["critical", "warning", "positive", "info"]
+        },
+        {
+          "name": "read",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notif_camp ON notifications (campaign_id)",
+        "CREATE INDEX idx_notif_user ON notifications (user_id)",
+        "CREATE INDEX idx_notif_read ON notifications (read)",
+        "CREATE INDEX idx_notif_created ON notifications (created DESC)"
       ]
     }
   ]

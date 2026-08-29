@@ -477,3 +477,25 @@ export interface DebateRehearsal {
     campaign_id?: Campaign
   }
 }
+
+// 10. In-App Notifications
+export type NotificationType = 'poll_alert' | 'info' | 'achievement' | 'debate' | 'territory'
+export type NotificationSeverity = 'critical' | 'warning' | 'positive' | 'info'
+
+export interface AppNotification {
+  id: string
+  user_id?: string
+  campaign_id: string
+  title: string
+  body: string
+  type: NotificationType
+  severity: NotificationSeverity
+  read: boolean
+  link?: string
+  created: string
+  updated: string
+  expand?: {
+    user_id?: UserRecord
+    campaign_id?: Campaign
+  }
+}

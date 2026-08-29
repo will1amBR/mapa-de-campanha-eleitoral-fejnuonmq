@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useCampaign } from '@/hooks/use-campaign'
 import { pollsService, type ParsedCsvPollRow } from '@/services/polls'
+import { debateService } from '@/services/debate'
 import type {
   Poll,
   PollScenario,
   PollAdversaryResult,
   PollAlert,
   PollAlertSeverity,
+  DebateEvent,
 } from '@/types/campaign'
 import {
   TrendingUp,
@@ -38,6 +40,9 @@ import {
   RefreshCw,
   Info,
   CheckCircle2,
+  Flame,
+  Swords,
+  Clock,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -84,6 +89,7 @@ export const PollsTrackingPage: React.FC = () => {
 
   const [polls, setPolls] = useState<Poll[]>([])
   const [alerts, setAlerts] = useState<PollAlert[]>([])
+  const [debateEvents, setDebateEvents] = useState<DebateEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [scenarioFilter, setScenarioFilter] = useState<string>('all')
   const [instituteFilter, setInstituteFilter] = useState<string>('all')
@@ -125,12 +131,14 @@ export const PollsTrackingPage: React.FC = () => {
     if (!currentCampaign) return
     try {
       setLoading(true)
-      const [data, alertsData] = await Promise.all([
+      const [data, alertsData, debatesData] = await Promise.all([
         pollsService.getPolls(currentCampaign.id),
         pollsService.getAlerts(currentCampaign.id),
+        debateService.getEvents(currentCampaign.id),
       ])
       setPolls(data)
       setAlerts(alertsData)
+      setDebateEvents(debatesData)
     } catch (err) {
       console.error(err)
       toast.error('Erro ao carregar pesquisas eleitorais')
@@ -292,6 +300,115 @@ export const PollsTrackingPage: React.FC = () => {
     '#EC4899', // Pink
     '#06B6D4', // Cyan
   ]
+
+  // Timeline events computation based on active polls, alerts and debates
+  interface TimelineItem {
+    id: string
+    date: string
+    title: string
+    subtitle: string
+    category: 'virada' | 'disparada' | 'debate' | 'pesquisa'
+    color: string
+    badge: string
+    details: {
+      institute?: string
+      percentage?: number
+      rank?: number
+      diffPp?: number
+      broadcaster?: string
+      scenario?: string
+    }
+  }
+
+  const timelineEvents = useMemo(() => {
+    const items: TimelineItem[] = []
+
+    // 1. Pesquisas Eleitorais filtradas
+    filteredPolls.forEach((poll) => {
+      items.push({
+        id: `poll-${poll.id}`,
+        date: poll.poll_date,
+        title: `Pesquisa ${poll.institute}`,
+        subtitle: `${poll.our_candidate_percentage}% (${poll.candidate_rank || 1}º lugar) • ${SCENARIO_LABELS[poll.scenario] || poll.scenario}`,
+        category: 'pesquisa',
+        color: 'border-amber-500 bg-amber-500/20 text-amber-300',
+        badge: 'Pesquisa',
+        details: {
+          institute: poll.institute,
+          percentage: poll.our_candidate_percentage,
+          rank: poll.candidate_rank || 1,
+          scenario: SCENARIO_LABELS[poll.scenario] || poll.scenario,
+        },
+      })
+    })
+
+    // 2. Alertas de Virada (lost_lead / gain_lead)
+    alerts
+      .filter((a) => a.alert_type === 'lost_lead' || a.alert_type === 'gain_lead')
+      .forEach((alert) => {
+        const isGain = alert.alert_type === 'gain_lead'
+        items.push({
+          id: `alert-virada-${alert.id}`,
+          date: alert.detected_at || alert.created,
+          title: isGain ? 'Virada: Assumiu Liderança' : 'Alerta: Perda de Liderança',
+          subtitle: alert.summary,
+          category: 'virada',
+          color: isGain
+            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
+            : 'border-rose-500 bg-rose-500/20 text-rose-300',
+          badge: isGain ? 'Virada (+)' : 'Virada (Queda)',
+          details: {
+            institute: alert.institute,
+            diffPp: alert.diff_pp,
+            scenario: alert.scenario,
+          },
+        })
+      })
+
+    // 3. Alertas de Disparada / Queda Acentuada (rise_significant / drop_significant)
+    alerts
+      .filter((a) => a.alert_type === 'rise_significant' || a.alert_type === 'drop_significant')
+      .forEach((alert) => {
+        const isRise = alert.alert_type === 'rise_significant'
+        items.push({
+          id: `alert-disparada-${alert.id}`,
+          date: alert.detected_at || alert.created,
+          title: isRise
+            ? `Disparada: +${alert.diff_pp || 3} p.p.`
+            : `Queda Brusca: ${alert.diff_pp || -3} p.p.`,
+          subtitle: alert.summary,
+          category: 'disparada',
+          color: isRise
+            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
+            : 'border-rose-500 bg-rose-500/20 text-rose-300',
+          badge: isRise ? 'Disparada' : 'Queda Brusca',
+          details: {
+            institute: alert.institute,
+            diffPp: alert.diff_pp,
+            scenario: alert.scenario,
+          },
+        })
+      })
+
+    // 4. Debates Eleitorais
+    debateEvents.forEach((ev) => {
+      items.push({
+        id: `debate-${ev.id}`,
+        date: ev.event_date,
+        title: `Debate: ${ev.title}`,
+        subtitle: `${ev.broadcaster || 'Emissora'} • ${ev.location || 'Ao Vivo'}`,
+        category: 'debate',
+        color: 'border-blue-500 bg-blue-500/20 text-blue-300',
+        badge: 'Debate',
+        details: {
+          broadcaster: ev.broadcaster,
+        },
+      })
+    })
+
+    // Ordenar cronologicamente do mais antigo para o mais recente (linha do tempo)
+    return items.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [filteredPolls, alerts, debateEvents])
 
   // Handlers for Modal
   const handleOpenCreate = () => {
@@ -919,57 +1036,217 @@ export const PollsTrackingPage: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-4 sm:p-6 space-y-6">
           {chartData.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
               <BarChart3 className="w-8 h-8 text-slate-600" />
               <span>Nenhuma pesquisa disponível para o filtro selecionado.</span>
             </div>
           ) : (
-            <div className="h-72 sm:h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 15, right: 20, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                  <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                  <YAxis
-                    stroke="#94A3B8"
-                    fontSize={11}
-                    tickLine={false}
-                    domain={[0, 'dataMax + 5']}
-                    unit="%"
-                  />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: '#0F172A',
-                      borderColor: '#334155',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      fontSize: '12px',
-                    }}
-                    formatter={(val: any, name: any) => [`${val}%`, name]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  {lineKeys.map((candName, idx) => {
-                    const isOur =
-                      candName === (currentCampaign?.candidate_name || 'Nosso Candidato')
-                    return (
-                      <Line
-                        key={candName}
-                        type="monotone"
-                        dataKey={candName}
-                        name={candName}
-                        stroke={
-                          isOur ? '#F59E0B' : CANDIDATE_COLORS[(idx + 1) % CANDIDATE_COLORS.length]
-                        }
-                        strokeWidth={isOur ? 3.5 : 2}
-                        dot={{ r: isOur ? 5 : 3.5 }}
-                        activeDot={{ r: isOur ? 7 : 5 }}
-                      />
-                    )
-                  })}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="h-72 sm:h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 15, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                    <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                    <YAxis
+                      stroke="#94A3B8"
+                      fontSize={11}
+                      tickLine={false}
+                      domain={[0, 'dataMax + 5']}
+                      unit="%"
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: '#0F172A',
+                        borderColor: '#334155',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '12px',
+                      }}
+                      formatter={(val: any, name: any) => [`${val}%`, name]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                    {lineKeys.map((candName, idx) => {
+                      const isOur =
+                        candName === (currentCampaign?.candidate_name || 'Nosso Candidato')
+                      return (
+                        <Line
+                          key={candName}
+                          type="monotone"
+                          dataKey={candName}
+                          name={candName}
+                          stroke={
+                            isOur
+                              ? '#F59E0B'
+                              : CANDIDATE_COLORS[(idx + 1) % CANDIDATE_COLORS.length]
+                          }
+                          strokeWidth={isOur ? 3.5 : 2}
+                          dot={{ r: isOur ? 5 : 3.5 }}
+                          activeDot={{ r: isOur ? 7 : 5 }}
+                        />
+                      )
+                    })}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* TIMELINE VISUAL DAS PESQUISAS & EVENTOS */}
+              <div className="pt-5 border-t border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white">
+                      Linha do Tempo Estratégica da Campanha
+                    </h4>
+                    <span className="text-[11px] text-slate-400">
+                      ({timelineEvents.length} marcos sincronizados)
+                    </span>
+                  </div>
+
+                  {/* Legenda de Cores */}
+                  <div className="flex items-center gap-2.5 flex-wrap text-[10px]">
+                    <span className="flex items-center gap-1 text-amber-400 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span> Pesquisa
+                    </span>
+                    <span className="flex items-center gap-1 text-rose-400 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span> Virada
+                    </span>
+                    <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Disparada
+                    </span>
+                    <span className="flex items-center gap-1 text-blue-400 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-blue-400"></span> Debate
+                    </span>
+                  </div>
+                </div>
+
+                {timelineEvents.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-slate-500">
+                    Nenhum evento registrado no período.
+                  </div>
+                ) : (
+                  /* Horizontal Scrollable Timeline on Desktop, Vertical list on mobile */
+                  <div className="relative">
+                    {/* Desktop Horizontal View */}
+                    <div className="hidden md:flex items-stretch gap-3 overflow-x-auto pb-3 pt-2 custom-scrollbar">
+                      {timelineEvents.map((item, idx) => {
+                        const dateFormatted = new Date(item.date).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                        })
+                        const isDebate = item.category === 'debate'
+                        const isVirada = item.category === 'virada'
+                        const isDisparada = item.category === 'disparada'
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`min-w-[210px] max-w-[230px] p-3 rounded-xl border flex flex-col justify-between transition-all shrink-0 hover:scale-[1.02] shadow-sm ${
+                              isVirada
+                                ? 'bg-rose-950/40 border-rose-500/50'
+                                : isDisparada
+                                  ? 'bg-emerald-950/40 border-emerald-500/50'
+                                  : isDebate
+                                    ? 'bg-blue-950/40 border-blue-500/50'
+                                    : 'bg-slate-950/70 border-amber-500/30'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-1 mb-1.5">
+                                <span
+                                  className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
+                                    isVirada
+                                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                      : isDisparada
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                        : isDebate
+                                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono font-bold">
+                                  {dateFormatted}
+                                </span>
+                              </div>
+
+                              <div className="font-bold text-xs text-white line-clamp-1">
+                                {item.title}
+                              </div>
+                              <p className="text-[10px] text-slate-300 mt-1 line-clamp-2 leading-tight">
+                                {item.subtitle}
+                              </p>
+                            </div>
+
+                            {item.details.percentage !== undefined && (
+                              <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                                <span>{item.details.institute}</span>
+                                <span className="text-amber-400 font-bold">
+                                  {item.details.percentage}% ({item.details.rank}º)
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Mobile Vertical View */}
+                    <div className="md:hidden space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                      {timelineEvents.map((item) => {
+                        const dateFormatted = new Date(item.date).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                        })
+                        const isDebate = item.category === 'debate'
+                        const isVirada = item.category === 'virada'
+                        const isDisparada = item.category === 'disparada'
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`p-3 rounded-xl border text-xs space-y-1 ${
+                              isVirada
+                                ? 'bg-rose-950/40 border-rose-500/50'
+                                : isDisparada
+                                  ? 'bg-emerald-950/40 border-emerald-500/50'
+                                  : isDebate
+                                    ? 'bg-blue-950/40 border-blue-500/50'
+                                    : 'bg-slate-950/70 border-amber-500/30'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
+                                  isVirada
+                                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                    : isDisparada
+                                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                      : isDebate
+                                        ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono font-bold">
+                                {dateFormatted}
+                              </span>
+                            </div>
+                            <div className="font-bold text-xs text-white">{item.title}</div>
+                            <p className="text-[11px] text-slate-300 leading-snug">
+                              {item.subtitle}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

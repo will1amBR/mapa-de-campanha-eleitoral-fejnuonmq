@@ -20,10 +20,17 @@ import {
   X,
   Trophy,
   Swords,
+  Bell,
+  CheckCheck,
+  ExternalLink,
+  Check,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
 import { useGpsTracker } from '@/hooks/use-gps-tracker'
+import { notificationsService } from '@/services/notifications'
+import type { AppNotification } from '@/types/campaign'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -46,6 +53,81 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const { isTracking, startTracking, stopTracking } = useGpsTracker()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+
+  // In-app notifications state
+  const [notifications, setNotifications] = React.useState<AppNotification[]>([])
+  const [unreadCount, setUnreadCount] = React.useState(0)
+  const [loadingNotifs, setLoadingNotifs] = React.useState(false)
+
+  const loadNotifications = React.useCallback(async () => {
+    if (!currentCampaign) return
+    try {
+      const items = await notificationsService.getNotifications(currentCampaign.id, 20)
+      setNotifications(items)
+      setUnreadCount(items.filter((n) => !n.read).length)
+    } catch (err) {
+      console.warn('Failed to load notifications:', err)
+    }
+  }, [currentCampaign])
+
+  React.useEffect(() => {
+    loadNotifications()
+
+    // Realtime subscription for instant notification alerts
+    let unsubscribe: (() => void) | undefined
+    if (currentCampaign) {
+      pb.collection('notifications')
+        .subscribe('*', (e) => {
+          if (e.record && (e.record.campaign_id === currentCampaign.id || !e.record.campaign_id)) {
+            loadNotifications()
+          }
+        })
+        .then((unsub) => {
+          unsubscribe = unsub
+        })
+        .catch(() => {})
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }, [currentCampaign, loadNotifications])
+
+  const handleMarkAsRead = async (notifId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await notificationsService.markAsRead(notifId)
+      setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    } catch (err) {
+      console.error('Error marking notification as read:', err)
+    }
+  }
+
+  const handleMarkAllAsRead = async () => {
+    if (!currentCampaign) return
+    try {
+      setLoadingNotifs(true)
+      await notificationsService.markAllAsRead(currentCampaign.id)
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      setUnreadCount(0)
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err)
+    } finally {
+      setLoadingNotifs(false)
+    }
+  }
+
+  const handleNotificationClick = (notif: AppNotification) => {
+    if (!notif.read) {
+      notificationsService.markAsRead(notif.id).catch(() => {})
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    }
+    if (notif.link) {
+      navigate(notif.link)
+    }
+  }
 
   interface NavItem {
     to: string
@@ -237,6 +319,152 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                 : 'Clique para ativar a transmissão de GPS.'}
             </TooltipContent>
           </Tooltip>
+
+          {/* Notifications Bell Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 p-0 shrink-0"
+                aria-label="Notificações"
+              >
+                <Bell className="w-4 h-4 text-slate-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-slate-900 animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-80 sm:w-96 bg-slate-900 border-slate-800 text-slate-100 p-0 z-50 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-950/80 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold text-white">Notificações da Campanha</span>
+                  {unreadCount > 0 && (
+                    <Badge className="bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] h-4 px-1.5 font-bold">
+                      {unreadCount} novas
+                    </Badge>
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    disabled={loadingNotifs}
+                    className="text-[11px] text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    Marcar lidas
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center space-y-1.5">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
+                      <Bell className="w-4 h-4 opacity-50" />
+                    </div>
+                    <p className="text-xs font-medium text-slate-300">Nenhuma notificação</p>
+                    <p className="text-[10px] text-slate-500">
+                      Alertas de virada e avisos da coordenação surgirão aqui.
+                    </p>
+                  </div>
+                ) : (
+                  notifications.map((notif) => {
+                    const isCritical = notif.severity === 'critical'
+                    const isWarning = notif.severity === 'warning'
+                    const isPositive = notif.severity === 'positive'
+
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`p-3 transition-colors cursor-pointer flex items-start gap-3 hover:bg-slate-800/80 ${
+                          !notif.read ? 'bg-slate-800/40' : 'bg-transparent opacity-80'
+                        }`}
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                            !notif.read
+                              ? isCritical
+                                ? 'bg-rose-500'
+                                : isPositive
+                                  ? 'bg-emerald-400'
+                                  : isWarning
+                                    ? 'bg-amber-400'
+                                    : 'bg-blue-400'
+                              : 'bg-slate-700'
+                          }`}
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span
+                              className={`text-xs font-bold truncate ${
+                                isCritical
+                                  ? 'text-rose-300'
+                                  : isPositive
+                                    ? 'text-emerald-300'
+                                    : 'text-white'
+                              }`}
+                            >
+                              {notif.title}
+                            </span>
+                            <span className="text-[10px] text-slate-500 shrink-0 font-mono">
+                              {new Date(notif.created).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                              })}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
+                            {notif.body}
+                          </p>
+
+                          <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-800/40">
+                            {notif.link ? (
+                              <span className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 font-medium">
+                                Ver detalhes <ExternalLink className="w-2.5 h-2.5" />
+                              </span>
+                            ) : (
+                              <span />
+                            )}
+
+                            {!notif.read && (
+                              <button
+                                onClick={(e) => handleMarkAsRead(notif.id, e)}
+                                className="text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 p-0.5 rounded hover:bg-slate-700/50"
+                                title="Marcar como lida"
+                              >
+                                <Check className="w-3 h-3" /> Lida
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {notifications.length > 0 && (
+                <div className="p-2 bg-slate-950/90 border-t border-slate-800 text-center">
+                  <button
+                    onClick={() => navigate('/polls')}
+                    className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold"
+                  >
+                    Ver painel de pesquisas e alertas →
+                  </button>
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* User Profile Dropdown */}
           <DropdownMenu>
