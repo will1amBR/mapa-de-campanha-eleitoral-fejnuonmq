@@ -1,6 +1,7 @@
 injectWorkspacePackages: false
 allowBuilds:
   '@swc/core': true
+  core-js: true
   esbuild: true
 
 minimumReleaseAgeExclude:

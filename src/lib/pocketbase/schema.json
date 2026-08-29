@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T03:42:59.979Z",
+  "generatedAt": "2026-08-29T04:34:16.779Z",
   "collections": [
     {
       "name": "users",
@@ -1731,6 +1731,129 @@
       "indexes": [
         "CREATE INDEX idx_debate_reh_camp ON debate_rehearsals (campaign_id)",
         "CREATE INDEX idx_debate_reh_score ON debate_rehearsals (overall_score)"
+      ]
+    },
+    {
+      "name": "poll_alerts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "poll_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "polls"
+        },
+        {
+          "name": "alert_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "lost_lead",
+            "gain_lead",
+            "drop_significant",
+            "rise_significant",
+            "adversary_surge",
+            "margin_tie",
+            "general"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "summary",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "severity",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["critical", "warning", "positive", "info"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["active", "resolved", "dismissed"]
+        },
+        {
+          "name": "detected_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "diff_pp",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "scenario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "institute",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resolved_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_poll_alerts_camp ON poll_alerts (campaign_id)",
+        "CREATE INDEX idx_poll_alerts_status ON poll_alerts (status)",
+        "CREATE INDEX idx_poll_alerts_poll ON poll_alerts (poll_id)"
       ]
     }
   ]

@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useCampaign } from '@/hooks/use-campaign'
-import { pollsService } from '@/services/polls'
-import type { Poll, PollScenario, PollAdversaryResult } from '@/types/campaign'
+import { pollsService, type ParsedCsvPollRow } from '@/services/polls'
+import type {
+  Poll,
+  PollScenario,
+  PollAdversaryResult,
+  PollAlert,
+  PollAlertSeverity,
+} from '@/types/campaign'
 import {
   TrendingUp,
   TrendingDown,
@@ -12,6 +18,7 @@ import {
   Layers,
   FileSpreadsheet,
   AlertCircle,
+  AlertTriangle,
   Sparkles,
   Trash2,
   Edit,
@@ -23,6 +30,14 @@ import {
   ChevronRight,
   HelpCircle,
   Download,
+  Upload,
+  FileUp,
+  Check,
+  XCircle,
+  BellRing,
+  RefreshCw,
+  Info,
+  CheckCircle2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -68,9 +83,14 @@ export const PollsTrackingPage: React.FC = () => {
   const { currentCampaign } = useCampaign()
 
   const [polls, setPolls] = useState<Poll[]>([])
+  const [alerts, setAlerts] = useState<PollAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [scenarioFilter, setScenarioFilter] = useState<string>('all')
   const [instituteFilter, setInstituteFilter] = useState<string>('all')
+  const [alertsStatusFilter, setAlertsStatusFilter] = useState<
+    'all' | 'active' | 'resolved' | 'dismissed'
+  >('active')
+  const [evaluatingAlerts, setEvaluatingAlerts] = useState(false)
 
   // Modal create/edit poll
   const [modalOpen, setModalOpen] = useState(false)
@@ -94,17 +114,66 @@ export const PollsTrackingPage: React.FC = () => {
     { adversary_name: 'Tabata Amaral', party: 'PSB', percentage: 5.0 },
   ])
 
+  // Modal CSV Import State
+  const [csvModalOpen, setCsvModalOpen] = useState(false)
+  const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [parsedRows, setParsedRows] = useState<ParsedCsvPollRow[]>([])
+  const [csvRawText, setCsvRawText] = useState('')
+  const [importingCsv, setImportingCsv] = useState(false)
+
   const loadPolls = async () => {
     if (!currentCampaign) return
     try {
       setLoading(true)
-      const data = await pollsService.getPolls(currentCampaign.id)
+      const [data, alertsData] = await Promise.all([
+        pollsService.getPolls(currentCampaign.id),
+        pollsService.getAlerts(currentCampaign.id),
+      ])
       setPolls(data)
+      setAlerts(alertsData)
     } catch (err) {
       console.error(err)
       toast.error('Erro ao carregar pesquisas eleitorais')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleScanAlerts = async () => {
+    if (!currentCampaign) return
+    try {
+      setEvaluatingAlerts(true)
+      const newAlerts = await pollsService.evaluateAlertsForCampaign(currentCampaign.id)
+      toast.success(
+        newAlerts.length > 0
+          ? `Varredura concluída! ${newAlerts.length} novo(s) alerta(s) de virada detectado(s).`
+          : 'Varredura concluída! Nenhum novo alerta de virada identificado.',
+      )
+      loadPolls()
+    } catch (err) {
+      toast.error('Erro ao avaliar tendências de pesquisas')
+    } finally {
+      setEvaluatingAlerts(false)
+    }
+  }
+
+  const handleResolveAlert = async (id: string) => {
+    try {
+      await pollsService.resolveAlert(id)
+      toast.success('Alerta marcado como resolvido!')
+      loadPolls()
+    } catch {
+      toast.error('Erro ao resolver alerta')
+    }
+  }
+
+  const handleDismissAlert = async (id: string) => {
+    try {
+      await pollsService.dismissAlert(id)
+      toast.info('Alerta dispensado')
+      loadPolls()
+    } catch {
+      toast.error('Erro ao dispensar alerta')
     }
   }
 
@@ -340,27 +409,34 @@ export const PollsTrackingPage: React.FC = () => {
     }
     const rows = [
       [
-        'Data',
-        'Instituto',
-        'Cenário',
-        'Percentual Nosso (%)',
-        'Posição/Rank',
-        'Margem de Erro (p.p.)',
-        'Amostra',
-        'Registro TSE',
-        'Notas',
+        'instituto',
+        'data',
+        'cenario',
+        'percentual_nosso',
+        'posicao',
+        'margem_erro',
+        'amostra',
+        'registro_tse',
+        'adversarios',
+        'notas',
       ],
-      ...polls.map((p) => [
-        p.poll_date ? new Date(p.poll_date).toLocaleDateString('pt-BR') : '',
-        p.institute,
-        p.scenario,
-        p.our_candidate_percentage,
-        p.candidate_rank,
-        p.margin_of_error,
-        p.sample_size,
-        p.tse_registration || '',
-        `"${(p.analysis_notes || '').replace(/"/g, '""')}"`,
-      ]),
+      ...polls.map((p) => {
+        const advsFormatted = (p.adversaries_results || [])
+          .map((a) => `${a.adversary_name}${a.party ? ` (${a.party})` : ''}: ${a.percentage}`)
+          .join(' | ')
+        return [
+          p.institute,
+          p.poll_date ? new Date(p.poll_date).toISOString().slice(0, 10) : '',
+          p.scenario,
+          p.our_candidate_percentage,
+          p.candidate_rank || 1,
+          p.margin_of_error || 2.0,
+          p.sample_size || 1500,
+          p.tse_registration || '',
+          `"${advsFormatted.replace(/"/g, '""')}"`,
+          `"${(p.analysis_notes || '').replace(/"/g, '""')}"`,
+        ]
+      }),
     ]
     const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n')
     const encodedUri = encodeURI(csvContent)
@@ -375,6 +451,77 @@ export const PollsTrackingPage: React.FC = () => {
     document.body.removeChild(link)
     toast.success('Planilha de pesquisas exportada!')
   }
+
+  // Download CSV template
+  const handleDownloadTemplate = () => {
+    const template = pollsService.getTemplateCsv()
+    const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + template)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', 'template_importacao_pesquisas.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('Modelo CSV de pesquisas baixado com sucesso!')
+  }
+
+  // CSV File reading
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCsvFile(file)
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string
+      setCsvRawText(text)
+      const parsed = pollsService.parseCsv(text)
+      setParsedRows(parsed)
+      if (parsed.length === 0) {
+        toast.warning('Nenhuma linha válida encontrada no arquivo CSV.')
+      } else {
+        toast.info(`${parsed.length} pesquisa(s) lida(s) no preview.`)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  // Confirm CSV Batch Import
+  const handleConfirmCsvImport = async () => {
+    if (!currentCampaign) return
+    const validRows = parsedRows.filter((r) => r.isValid)
+    if (validRows.length === 0) {
+      toast.error('Nenhuma linha válida para importar.')
+      return
+    }
+
+    try {
+      setImportingCsv(true)
+      const result = await pollsService.importPollsBatch(currentCampaign.id, validRows)
+      toast.success(
+        `Importação concluída com sucesso! ${result.imported} pesquisa(s) importada(s).`,
+      )
+      if (result.errors > 0) {
+        toast.warning(`${result.errors} linha(s) com erro foram ignoradas.`)
+      }
+      setCsvModalOpen(false)
+      setCsvFile(null)
+      setParsedRows([])
+      setCsvRawText('')
+      loadPolls()
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao importar pesquisas em lote')
+    } finally {
+      setImportingCsv(false)
+    }
+  }
+
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((a) => {
+      if (alertsStatusFilter === 'all') return true
+      return a.status === alertsStatusFilter
+    })
+  }, [alerts, alertsStatusFilter])
 
   return (
     <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 text-slate-100 overflow-x-hidden">
@@ -410,6 +557,18 @@ export const PollsTrackingPage: React.FC = () => {
           </Button>
 
           <Button
+            onClick={() => {
+              setParsedRows([])
+              setCsvFile(null)
+              setCsvRawText('')
+              setCsvModalOpen(true)
+            }}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs sm:text-sm h-9 sm:h-10 px-4 shadow-lg shadow-blue-500/20 flex-1 sm:flex-none justify-center"
+          >
+            <FileUp className="w-4 h-4 mr-1.5 stroke-[2.5]" /> Importar CSV
+          </Button>
+
+          <Button
             variant="outline"
             onClick={exportPollsCSV}
             className="bg-slate-900/90 border-slate-700 hover:bg-slate-800 text-slate-200 font-semibold text-xs sm:text-sm h-9 sm:h-10 px-3.5 flex-1 sm:flex-none justify-center"
@@ -418,6 +577,175 @@ export const PollsTrackingPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* SEÇÃO 1: FEED DE ALERTAS DE VIRADA & TENDÊNCIA */}
+      <Card className="border-amber-500/40 bg-gradient-to-r from-slate-950 via-slate-900 to-[#1e1b4b] text-white shadow-xl overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 border-b border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+              <BellRing className="w-5 h-5 animate-bounce" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base font-extrabold text-white flex items-center gap-2">
+                  Alertas de Virada & Tendência Eleitoral
+                </CardTitle>
+                <Badge
+                  className={`text-[10px] font-black uppercase shrink-0 ${
+                    alerts.filter((a) => a.status === 'active').length > 0
+                      ? 'bg-rose-600 text-white animate-pulse'
+                      : 'bg-emerald-500 text-slate-950'
+                  }`}
+                >
+                  {alerts.filter((a) => a.status === 'active').length}{' '}
+                  {alerts.filter((a) => a.status === 'active').length === 1
+                    ? 'alerta ativo'
+                    : 'alertas ativos'}
+                </Badge>
+              </div>
+              <CardDescription className="text-xs text-slate-300 mt-0.5">
+                Detecção automática de perda/ganho de liderança e oscilações de 3 p.p. ou mais entre
+                rodadas
+              </CardDescription>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-end">
+            <Select
+              value={alertsStatusFilter}
+              onValueChange={(val: any) => setAlertsStatusFilter(val)}
+            >
+              <SelectTrigger className="h-8 text-xs bg-slate-950 border-slate-800 text-slate-200 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="resolved">Resolvidos</SelectItem>
+                <SelectItem value="dismissed">Dispensados</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              size="sm"
+              onClick={handleScanAlerts}
+              disabled={evaluatingAlerts}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${evaluatingAlerts ? 'animate-spin' : ''}`} />
+              {evaluatingAlerts ? 'Varrendo...' : 'Reavaliar Tendências'}
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-4 sm:p-5">
+          {filteredAlerts.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400 bg-slate-950/60 rounded-xl border border-slate-800/80 flex flex-col items-center justify-center space-y-1">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-1" />
+              <span className="font-bold text-slate-200 text-sm">
+                Nenhum alerta de virada pendente ({alertsStatusFilter})
+              </span>
+              <p className="text-[11px] text-slate-400">
+                O sistema monitora continuamente oscilações bruscas e inversões de liderança entre
+                pesquisas.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {filteredAlerts.map((alert) => {
+                const isCritical = alert.severity === 'critical'
+                const isPositive = alert.severity === 'positive'
+                const isWarning = alert.severity === 'warning'
+
+                const severityBadge = isCritical
+                  ? { label: '🔴 Crítico', class: 'bg-rose-600 text-white' }
+                  : isPositive
+                    ? { label: '🟢 Positivo', class: 'bg-emerald-500 text-slate-950' }
+                    : isWarning
+                      ? { label: '🟡 Atenção', class: 'bg-amber-500 text-slate-950' }
+                      : { label: 'ℹ️ Informativo', class: 'bg-blue-500 text-white' }
+
+                const formattedDate = alert.detected_at
+                  ? new Date(alert.detected_at).toLocaleDateString('pt-BR')
+                  : new Date(alert.created).toLocaleDateString('pt-BR')
+
+                return (
+                  <div
+                    key={alert.id}
+                    className={`p-4 rounded-xl border transition-all flex flex-col justify-between shadow-sm ${
+                      isCritical
+                        ? 'bg-rose-950/30 border-rose-500/40'
+                        : isPositive
+                          ? 'bg-emerald-950/30 border-emerald-500/40'
+                          : 'bg-slate-950/80 border-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge
+                          className={`text-[10px] font-black uppercase ${severityBadge.class}`}
+                        >
+                          {severityBadge.label}
+                        </Badge>
+                        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-slate-500" />
+                          {formattedDate}
+                        </span>
+                      </div>
+
+                      <h4 className="font-extrabold text-sm text-white leading-snug">
+                        {alert.title}
+                      </h4>
+
+                      <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
+                        {alert.summary}
+                      </p>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                        <span>
+                          Instituto:{' '}
+                          <strong className="text-amber-400">{alert.institute || 'Geral'}</strong>
+                        </span>
+                        <span>
+                          Status:{' '}
+                          <strong className="capitalize text-slate-300">{alert.status}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {alert.status === 'active' ? (
+                      <div className="flex items-center gap-2 pt-3 border-t border-slate-800 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => handleResolveAlert(alert.id)}
+                          className="flex-1 h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                        >
+                          <Check className="w-3.5 h-3.5 mr-1" /> Resolvido
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDismissAlert(alert.id)}
+                          className="h-7 text-xs text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> Descartar
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-slate-800/80 mt-2 text-[11px] text-slate-500 text-right">
+                        Resolvido/Dispensado em{' '}
+                        {alert.resolved_at
+                          ? new Date(alert.resolved_at).toLocaleDateString('pt-BR')
+                          : 'revisão anterior'}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
@@ -885,6 +1213,160 @@ export const PollsTrackingPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* DIALOG: Importar Pesquisas via CSV */}
+      <Dialog open={csvModalOpen} onOpenChange={setCsvModalOpen}>
+        <DialogContent className="sm:max-w-3xl bg-slate-900 border-slate-800 text-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold text-white flex items-center gap-2">
+              <FileUp className="w-5 h-5 text-blue-400" />
+              Importar Pesquisas Eleitorais em Lote (CSV)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Carregue um arquivo CSV para importar pesquisas do Datafolha, Quaest, Ipec e outros
+              com cálculo automático de tendências.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Box de instrução e download de modelo */}
+            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    <Info className="w-4 h-4" /> Formato do Arquivo CSV
+                  </h4>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Colunas aceitas: instituto, data (AAAA-MM-DD ou DD/MM/AAAA), cenario,
+                    percentual_nosso, posicao, margem_erro, amostra, registro_tse, adversarios e
+                    notas.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadTemplate}
+                  className="bg-slate-900 border-slate-700 text-amber-400 hover:bg-slate-800 text-xs h-8 shrink-0 font-bold"
+                >
+                  <Download className="w-3.5 h-3.5 mr-1" /> Baixar Modelo CSV
+                </Button>
+              </div>
+
+              <div className="text-[11px] text-slate-400 font-mono bg-slate-900/90 p-2.5 rounded-lg overflow-x-auto">
+                instituto,data,cenario,percentual_nosso,posicao,margem_erro,amostra,registro_tse,adversarios,notas
+                <br />
+                Datafolha,2024-09-15,estimulada_1t,32.5,1,2.0,1500,SP-01234/2024,"Guilherme Boulos:
+                26.0 | Ricardo Nunes: 24.0",Crescimento pós sabatina
+              </div>
+            </div>
+
+            {/* Input de arquivo */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-200">
+                Selecione o arquivo CSV (.csv) *
+              </Label>
+              <Input
+                type="file"
+                accept=".csv,text/csv,text/plain"
+                onChange={handleFileChange}
+                className="text-xs bg-slate-950 border-slate-800 text-slate-100 file:bg-amber-500 file:text-slate-950 file:font-bold file:border-0 file:rounded-md file:mr-3 file:px-2.5 file:py-1 cursor-pointer"
+              />
+            </div>
+
+            {/* Preview das Linhas Validadas */}
+            {parsedRows.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>Prévia de Importação:</span>
+                    <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                      {parsedRows.filter((r) => r.isValid).length} válidas
+                    </Badge>
+                    {parsedRows.some((r) => !r.isValid) && (
+                      <Badge className="bg-rose-500/20 text-rose-400 text-[10px] font-bold">
+                        {parsedRows.filter((r) => !r.isValid).length} com erro
+                      </Badge>
+                    )}
+                  </h4>
+                  <span className="text-[11px] text-slate-400">
+                    Total: {parsedRows.length} registros
+                  </span>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                  {parsedRows.map((row, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border text-xs space-y-1 ${
+                        row.isValid
+                          ? 'bg-slate-950/80 border-slate-800'
+                          : 'bg-rose-950/30 border-rose-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400">{row.institute}</span>
+                          <span className="text-slate-400 font-normal">
+                            ({new Date(row.poll_date).toLocaleDateString('pt-BR')})
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] text-slate-400 border-slate-700"
+                          >
+                            {SCENARIO_LABELS[row.scenario] || row.scenario}
+                          </Badge>
+                        </div>
+                        <span className="text-amber-400 font-extrabold">
+                          {row.our_candidate_percentage}% ({row.candidate_rank}º Lugar)
+                        </span>
+                      </div>
+
+                      {/* Adversaries preview */}
+                      {row.adversaries_results.length > 0 && (
+                        <div className="text-[11px] text-slate-400 truncate">
+                          Adversários:{' '}
+                          {row.adversaries_results
+                            .map((a) => `${a.adversary_name}: ${a.percentage}%`)
+                            .join(', ')}
+                        </div>
+                      )}
+
+                      {/* Errors */}
+                      {row.errors.length > 0 && (
+                        <div className="text-[11px] text-rose-400 font-semibold">
+                          ⚠️ Erros: {row.errors.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCsvModalOpen(false)}
+              className="text-xs bg-slate-800 border-slate-700 text-slate-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmCsvImport}
+              disabled={importingCsv || parsedRows.filter((r) => r.isValid).length === 0}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs"
+            >
+              {importingCsv
+                ? 'Importando...'
+                : `Confirmar Importação (${parsedRows.filter((r) => r.isValid).length} registros)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* DIALOG: Criar / Editar Pesquisa Eleitoral */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

@@ -380,6 +380,42 @@ export interface Poll {
   }
 }
 
+// 7.1 Poll Alerts (Alerta de Virada / Tendência)
+export type PollAlertType =
+  | 'lost_lead'
+  | 'gain_lead'
+  | 'drop_significant'
+  | 'rise_significant'
+  | 'adversary_surge'
+  | 'margin_tie'
+  | 'general'
+
+export type PollAlertSeverity = 'critical' | 'warning' | 'positive' | 'info'
+export type PollAlertStatus = 'active' | 'resolved' | 'dismissed'
+
+export interface PollAlert {
+  id: string
+  campaign_id: string
+  poll_id?: string
+  alert_type: PollAlertType
+  title: string
+  summary: string
+  severity: PollAlertSeverity
+  status: PollAlertStatus
+  detected_at: string
+  diff_pp?: number
+  scenario?: string
+  institute?: string
+  resolved_at?: string
+  metadata?: Record<string, any>
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+    poll_id?: Poll
+  }
+}
+
 // 8. Debate QA Library (Biblioteca de Perguntas por Área)
 export type LibraryDifficulty = 'facil' | 'medio' | 'dificil' | 'casca_de_banana'
 export type LibraryTopic =

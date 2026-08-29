@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 import { useCampaign } from '@/hooks/use-campaign'
 import { debateService } from '@/services/debate'
 import { pollsService } from '@/services/polls'
+import { generateDebatePdfReport } from '@/services/debatePdfReport'
 import type {
   DebateEvent,
   DebateAdversary,
@@ -59,6 +60,7 @@ import {
   Award,
   AlertCircle,
   TrendingUp,
+  FileDown,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -247,6 +249,7 @@ export const DebatePrepPage: React.FC = () => {
 
   // AI Assistant generator inside modal
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
 
   const loadData = async () => {
     if (!currentCampaign) return
@@ -871,12 +874,66 @@ export const DebatePrepPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto shrink-0">
           <Button
             onClick={() => {
+              if (!currentCampaign) {
+                toast.error('Nenhuma campanha selecionada.')
+                return
+              }
+              try {
+                setGeneratingPdf(true)
+                const sortedEvents = [...events].sort(
+                  (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime(),
+                )
+                const nextDebate =
+                  sortedEvents.find((e) => new Date(e.event_date) >= new Date()) ||
+                  sortedEvents[0] ||
+                  null
+
+                const sortedRehearsals = [...rehearsals].sort(
+                  (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime(),
+                )
+                const latestReh = sortedRehearsals[0] || null
+
+                const readyQAs = qaList.filter(
+                  (q) => q.prep_status === 'ready' || q.prep_status === 'rehearsed',
+                )
+                const targetQAs = readyQAs.length > 0 ? readyQAs : qaList
+
+                const doc = generateDebatePdfReport({
+                  campaign: currentCampaign,
+                  nextDebate,
+                  allEvents: events,
+                  latestPoll,
+                  previousPoll: null,
+                  adversaries,
+                  readyQAs: targetQAs,
+                  latestRehearsal: latestReh,
+                })
+
+                const fileName = `dossie_pre_debate_${currentCampaign.candidate_name?.replace(/\s+/g, '_') || 'candidato'}_${new Date().toISOString().slice(0, 10)}.pdf`
+                doc.save(fileName)
+                toast.success('Dossiê Pré-Debate em PDF gerado e baixado com sucesso!')
+              } catch (err) {
+                console.error('Erro ao gerar relatório PDF:', err)
+                toast.error('Erro ao gerar relatório PDF.')
+              } finally {
+                setGeneratingPdf(false)
+              }
+            }}
+            disabled={generatingPdf}
+            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs sm:text-sm h-9 sm:h-10 px-4 shadow-lg shadow-amber-500/20 flex-1 sm:flex-none justify-center"
+          >
+            <FileDown className="w-4 h-4 mr-1.5 stroke-[2.5]" />
+            {generatingPdf ? 'Gerando Dossiê...' : 'Gerar Relatório Pré-Debate (PDF)'}
+          </Button>
+
+          <Button
+            onClick={() => {
               setActiveTab('simulator')
               handleStartRealisticRehearsal()
             }}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm h-9 sm:h-10 px-4 shadow-lg shadow-amber-500/20 flex-1 sm:flex-none justify-center"
+            className="bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs sm:text-sm h-9 sm:h-10 px-4 shadow-md flex-1 sm:flex-none justify-center"
           >
-            <Mic className="w-4 h-4 mr-1.5 stroke-[2.5]" /> Modo Ensaio Realista
+            <Mic className="w-4 h-4 mr-1.5 stroke-[2.5] text-amber-400" /> Modo Ensaio Realista
           </Button>
 
           <Button

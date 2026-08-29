@@ -17,7 +17,9 @@ import type {
   DebateAdversary,
   DebateRehearsal,
   Poll,
+  PollAlert,
 } from '@/types/campaign'
+import { pollsService } from '@/services/polls'
 import { computeGamificationLeaderboard, type MemberGamificationStats } from '@/lib/gamification'
 import { WeeklyGoalsSection } from '@/components/gamification/WeeklyGoalsSection'
 import {
@@ -109,6 +111,7 @@ export const Dashboard: React.FC = () => {
   const [debateAdversaries, setDebateAdversaries] = useState<DebateAdversary[]>([])
   const [debateRehearsals, setDebateRehearsals] = useState<DebateRehearsal[]>([])
   const [polls, setPolls] = useState<Poll[]>([])
+  const [pollAlerts, setPollAlerts] = useState<PollAlert[]>([])
   const [loading, setLoading] = useState(true)
 
   // Onboarding Wizard modal state
@@ -170,6 +173,7 @@ export const Dashboard: React.FC = () => {
         advRes,
         rehsRes,
         pollsRes,
+        pAlertsRes,
       ] = await Promise.all([
         pb.collection('activities').getFullList<Activity>({
           filter: `campaign_id = "${currentCampaign.id}"`,
@@ -226,6 +230,7 @@ export const Dashboard: React.FC = () => {
             sort: 'poll_date',
           })
           .catch(() => []),
+        pollsService.getActiveAlerts(currentCampaign.id).catch(() => []),
       ])
 
       setActivities(actRes)
@@ -241,6 +246,7 @@ export const Dashboard: React.FC = () => {
       setDebateAdversaries(advRes)
       setDebateRehearsals(rehsRes || [])
       setPolls(pollsRes || [])
+      setPollAlerts(pAlertsRes || [])
     } catch (err) {
       console.error('Error fetching dashboard data', err)
     } finally {
@@ -261,13 +267,48 @@ export const Dashboard: React.FC = () => {
     const unsubAlerts = pb.collection('alerts').subscribe('*', () => {
       fetchAlerts()
     })
+    const unsubPollAlerts = pb.collection('poll_alerts').subscribe('*', () => {
+      if (currentCampaign) {
+        pollsService
+          .getActiveAlerts(currentCampaign.id)
+          .then(setPollAlerts)
+          .catch(() => {})
+      }
+    })
 
     return () => {
       unsubActivities.then((u) => u())
       unsubLocations.then((u) => u())
       unsubAlerts.then((u) => u())
+      unsubPollAlerts.then((u) => u())
     }
   }, [currentCampaign])
+
+  const handleResolvePollAlert = async (id: string) => {
+    try {
+      await pollsService.resolveAlert(id)
+      toast.success('Alerta de pesquisa resolvido!')
+      if (currentCampaign) {
+        const active = await pollsService.getActiveAlerts(currentCampaign.id)
+        setPollAlerts(active)
+      }
+    } catch {
+      toast.error('Erro ao resolver alerta')
+    }
+  }
+
+  const handleDismissPollAlert = async (id: string) => {
+    try {
+      await pollsService.dismissAlert(id)
+      toast.info('Alerta de pesquisa dispensado')
+      if (currentCampaign) {
+        const active = await pollsService.getActiveAlerts(currentCampaign.id)
+        setPollAlerts(active)
+      }
+    } catch {
+      toast.error('Erro ao dispensar alerta')
+    }
+  }
 
   const handleResolveAlert = async (alertId: string) => {
     try {
@@ -523,7 +564,7 @@ export const Dashboard: React.FC = () => {
         teamUsers={teamUsers}
       />
 
-      {/* CARD RESUMO: ACOMPANHAMENTO DE PESQUISAS ELEITORAIS (DATAFOLHA / QUAEST) */}
+      {/* CARD RESUMO: ACOMPANHAMENTO DE PESQUISAS ELEITORAIS COM ALERTAS DE VIRADA */}
       {(() => {
         const sortedPolls = [...polls].sort(
           (a, b) => new Date(a.poll_date).getTime() - new Date(b.poll_date).getTime(),
@@ -551,123 +592,210 @@ export const Dashboard: React.FC = () => {
             : 'Primeiro levantamento'
 
         return (
-          <Card className="border-amber-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-[#1e1b4b] text-white shadow-lg overflow-hidden">
-            <CardHeader className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
-                  <BarChart3 className="w-5 h-5 stroke-[2.5]" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-extrabold text-white truncate">
-                      Termômetro de Pesquisas Eleitorais (Datafolha & Institutos)
-                    </CardTitle>
-                    <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] uppercase shrink-0">
-                      {latestPoll?.candidate_rank || 1}º Lugar •{' '}
-                      {latestPoll?.our_candidate_percentage || 31.0}%
-                    </Badge>
+          <div className="space-y-4">
+            {/* Poll Alerts Banner if active alerts exist */}
+            {pollAlerts.length > 0 && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/80 via-slate-900 to-slate-950 border border-rose-500/50 shadow-lg space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                      <BellRing className="w-4 h-4 animate-bounce" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5">
+                        Alertas de Virada e Oscilação em Aberto
+                        <Badge className="bg-rose-600 text-white text-[10px] font-black">
+                          {pollAlerts.length} {pollAlerts.length === 1 ? 'ativo' : 'ativos'}
+                        </Badge>
+                      </h4>
+                      <p className="text-[11px] text-slate-300">
+                        Mudança de colocação ou oscilação brusca detectada nas últimas pesquisas
+                        eleitorais
+                      </p>
+                    </div>
                   </div>
-                  <CardDescription className="text-xs text-slate-300 mt-0.5">
-                    Monitoramento contínuo de intenção de voto, comparativo de rodadas e tendências
-                    TSE
-                  </CardDescription>
-                </div>
-              </div>
 
-              <Button
-                size="sm"
-                onClick={() => navigate('/polls')}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3.5 shrink-0 self-start sm:self-auto"
-              >
-                Ver Evolução Completa <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-            </CardHeader>
-
-            <CardContent className="p-4 sm:p-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {/* Sub-item 1: Intenção Atual */}
-                <div
-                  onClick={() => navigate('/polls')}
-                  className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Última Pesquisa</span>
-                    <Badge className="bg-amber-500/20 text-amber-400 text-[9px] font-bold">
-                      {latestPoll?.institute || 'Datafolha'}
-                    </Badge>
-                  </div>
-                  <div className="text-2xl font-black text-amber-400">
-                    {latestPoll ? `${latestPoll.our_candidate_percentage}%` : '31.0%'}
-                  </div>
-                  <p className="text-[10px] text-slate-400">
-                    {latestPoll
-                      ? new Date(latestPoll.poll_date).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: 'short',
-                        })
-                      : 'Última rodada'}{' '}
-                    • Amostra: {latestPoll?.sample_size?.toLocaleString('pt-BR') || '1.800'}
-                  </p>
-                </div>
-
-                {/* Sub-item 2: Tendência */}
-                <div
-                  onClick={() => navigate('/polls')}
-                  className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Variação Recente</span>
-                    {isUp ? (
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    ) : isDown ? (
-                      <TrendingDown className="w-4 h-4 text-rose-400" />
-                    ) : (
-                      <Minus className="w-4 h-4 text-slate-400" />
-                    )}
-                  </div>
-                  <div
-                    className={`text-2xl font-black ${
-                      isUp ? 'text-emerald-400' : isDown ? 'text-rose-400' : 'text-slate-200'
-                    }`}
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/polls')}
+                    className="h-7 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
                   >
-                    {trendText}
-                  </div>
-                  <p className="text-[10px] text-slate-400">vs pesquisa anterior</p>
+                    Abrir Painel de Pesquisas <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
                 </div>
 
-                {/* Sub-item 3: O que pode mudar */}
-                <div
-                  onClick={() => navigate('/polls')}
-                  className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Área de Atenção</span>
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                  </div>
-                  <p className="text-xs font-semibold text-slate-200 line-clamp-2">
-                    {latestPoll?.analysis_notes ||
-                      'Manter liderança e avançar em saúde e mobilidade nos bairros periféricos.'}
-                  </p>
-                  <span className="text-[10px] text-amber-400 font-bold">
-                    Ver análise qualitativa →
-                  </span>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                  {pollAlerts.slice(0, 3).map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between space-y-2"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+                          <span
+                            className={
+                              alert.severity === 'critical' ? 'text-rose-400' : 'text-amber-400'
+                            }
+                          >
+                            {alert.severity === 'critical'
+                              ? '🔴 Crítico'
+                              : alert.severity === 'positive'
+                                ? '🟢 Positivo'
+                                : '🟡 Atenção'}
+                          </span>
+                          <span className="text-slate-400">
+                            {alert.detected_at
+                              ? new Date(alert.detected_at).toLocaleDateString('pt-BR')
+                              : ''}
+                          </span>
+                        </div>
+                        <h5 className="font-bold text-xs text-white leading-snug">{alert.title}</h5>
+                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1">
+                          "{alert.summary}"
+                        </p>
+                      </div>
 
-                {/* Sub-item 4: Total de Pesquisas */}
-                <div
-                  onClick={() => navigate('/polls')}
-                  className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Base de Pesquisas</span>
-                    <Calendar className="w-4 h-4 text-blue-400" />
-                  </div>
-                  <div className="text-2xl font-black text-white">{polls.length || 4}</div>
-                  <p className="text-[10px] text-slate-400">Levantamentos auditados TSE</p>
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
+                        <Button
+                          size="sm"
+                          onClick={() => handleResolvePollAlert(alert.id)}
+                          className="flex-1 h-6 text-[10px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                        >
+                          <Check className="w-3 h-3 mr-1" /> Resolvido
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDismissPollAlert(alert.id)}
+                          className="h-6 text-[10px] text-slate-400 hover:text-white"
+                        >
+                          <XCircle className="w-3 h-3 mr-1" /> Descartar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            <Card className="border-amber-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-[#1e1b4b] text-white shadow-lg overflow-hidden">
+              <CardHeader className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+                    <BarChart3 className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-base font-extrabold text-white truncate">
+                        Termômetro de Pesquisas Eleitorais (Datafolha & Institutos)
+                      </CardTitle>
+                      <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] uppercase shrink-0">
+                        {latestPoll?.candidate_rank || 1}º Lugar •{' '}
+                        {latestPoll?.our_candidate_percentage || 31.0}%
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs text-slate-300 mt-0.5">
+                      Monitoramento contínuo de intenção de voto, comparativo de rodadas e
+                      tendências TSE
+                    </CardDescription>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/polls')}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3.5 shrink-0 self-start sm:self-auto"
+                >
+                  Ver Evolução & Alertas <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </CardHeader>
+
+              <CardContent className="p-4 sm:p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {/* Sub-item 1: Intenção Atual */}
+                  <div
+                    onClick={() => navigate('/polls')}
+                    className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Última Pesquisa</span>
+                      <Badge className="bg-amber-500/20 text-amber-400 text-[9px] font-bold">
+                        {latestPoll?.institute || 'Datafolha'}
+                      </Badge>
+                    </div>
+                    <div className="text-2xl font-black text-amber-400">
+                      {latestPoll ? `${latestPoll.our_candidate_percentage}%` : '31.0%'}
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      {latestPoll
+                        ? new Date(latestPoll.poll_date).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'short',
+                          })
+                        : 'Última rodada'}{' '}
+                      • Amostra: {latestPoll?.sample_size?.toLocaleString('pt-BR') || '1.800'}
+                    </p>
+                  </div>
+
+                  {/* Sub-item 2: Tendência */}
+                  <div
+                    onClick={() => navigate('/polls')}
+                    className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Variação Recente</span>
+                      {isUp ? (
+                        <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      ) : isDown ? (
+                        <TrendingDown className="w-4 h-4 text-rose-400" />
+                      ) : (
+                        <Minus className="w-4 h-4 text-slate-400" />
+                      )}
+                    </div>
+                    <div
+                      className={`text-2xl font-black ${
+                        isUp ? 'text-emerald-400' : isDown ? 'text-rose-400' : 'text-slate-200'
+                      }`}
+                    >
+                      {trendText}
+                    </div>
+                    <p className="text-[10px] text-slate-400">vs pesquisa anterior</p>
+                  </div>
+
+                  {/* Sub-item 3: O que pode mudar */}
+                  <div
+                    onClick={() => navigate('/polls')}
+                    className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Área de Atenção</span>
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-200 line-clamp-2">
+                      {latestPoll?.analysis_notes ||
+                        'Manter liderança e avançar em saúde e mobilidade nos bairros periféricos.'}
+                    </p>
+                    <span className="text-[10px] text-amber-400 font-bold">
+                      Ver análise qualitativa →
+                    </span>
+                  </div>
+
+                  {/* Sub-item 4: Total de Pesquisas */}
+                  <div
+                    onClick={() => navigate('/polls')}
+                    className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Base de Pesquisas</span>
+                      <Calendar className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="text-2xl font-black text-white">{polls.length || 4}</div>
+                    <p className="text-[10px] text-slate-400">Levantamentos auditados TSE</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )
       })()}
 
