@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   Trophy,
+  Swords,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
@@ -67,6 +68,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       subtitle: 'Cadastro, indicação e relacionamento',
       items: [
         { to: '/dashboard', label: 'Captação & Métricas', icon: LayoutDashboard, badge: 'Aba 07' },
+        { to: '/debate-prep', label: 'Preparação de Debate', icon: Swords, badge: 'Q&A' },
         { to: '/candidates', label: 'Candidaturas SP (TSE)', icon: Users, badge: 'TSE' },
         { to: '/support-points', label: 'Comitês & Apoio', icon: Building2, badge: 'Aba 05' },
       ],

@@ -12,6 +12,9 @@ import type {
   ScheduledPost,
   Candidate,
   UserRecord,
+  DebateQA,
+  DebateEvent,
+  DebateAdversary,
 } from '@/types/campaign'
 import { computeGamificationLeaderboard, type MemberGamificationStats } from '@/lib/gamification'
 import { WeeklyGoalsSection } from '@/components/gamification/WeeklyGoalsSection'
@@ -46,6 +49,8 @@ import {
   Award,
   Crown,
   MapPin,
+  Swords,
+  ShieldAlert,
 } from 'lucide-react'
 import { OnboardingWizard } from '@/components/OnboardingWizard'
 import {
@@ -93,6 +98,9 @@ export const Dashboard: React.FC = () => {
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([])
   const [linkedCandidates, setLinkedCandidates] = useState<Candidate[]>([])
   const [teamUsers, setTeamUsers] = useState<UserRecord[]>([])
+  const [debateQAs, setDebateQAs] = useState<DebateQA[]>([])
+  const [debateEvents, setDebateEvents] = useState<DebateEvent[]>([])
+  const [debateAdversaries, setDebateAdversaries] = useState<DebateAdversary[]>([])
   const [loading, setLoading] = useState(true)
 
   // Onboarding Wizard modal state
@@ -140,39 +148,61 @@ export const Dashboard: React.FC = () => {
     if (!currentCampaign) return
     try {
       setLoading(true)
-      const [actRes, spRes, tlRes, terrRes, alertsRes, postsRes, candRes, usersRes] =
-        await Promise.all([
-          pb.collection('activities').getFullList<Activity>({
-            filter: `campaign_id = "${currentCampaign.id}"`,
-            sort: '-created',
-            expand: 'user_id',
-          }),
-          pb.collection('support_points').getFullList<SupportPoint>({
-            filter: `campaign_id = "${currentCampaign.id}"`,
-          }),
-          pb.collection('team_locations').getFullList<TeamLocation>({
-            sort: '-updated',
-            expand: 'user_id',
-          }),
-          pb.collection('territory_data').getFullList<TerritoryData>({
-            sort: '-priority_score',
-          }),
-          pb.collection('alerts').getFullList<TerritoryAlert>({
-            filter: `campaign_id = "${currentCampaign.id}" && status = "active"`,
-            sort: '-days_inactive,-created',
-          }),
-          pb.collection('scheduled_posts').getFullList<ScheduledPost>({
-            filter: `campaign_id = "${currentCampaign.id}"`,
-            sort: 'scheduled_at',
-          }),
-          pb.collection('candidates').getFullList<Candidate>({
-            filter: `campaign_id = "${currentCampaign.id}"`,
-            sort: 'candidate_number',
-          }),
-          pb.collection('users').getFullList<UserRecord>({
-            sort: 'name',
-          }),
-        ])
+      const [
+        actRes,
+        spRes,
+        tlRes,
+        terrRes,
+        alertsRes,
+        postsRes,
+        candRes,
+        usersRes,
+        qaRes,
+        eventsRes,
+        advRes,
+      ] = await Promise.all([
+        pb.collection('activities').getFullList<Activity>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+          sort: '-created',
+          expand: 'user_id',
+        }),
+        pb.collection('support_points').getFullList<SupportPoint>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+        }),
+        pb.collection('team_locations').getFullList<TeamLocation>({
+          sort: '-updated',
+          expand: 'user_id',
+        }),
+        pb.collection('territory_data').getFullList<TerritoryData>({
+          sort: '-priority_score',
+        }),
+        pb.collection('alerts').getFullList<TerritoryAlert>({
+          filter: `campaign_id = "${currentCampaign.id}" && status = "active"`,
+          sort: '-days_inactive,-created',
+        }),
+        pb.collection('scheduled_posts').getFullList<ScheduledPost>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+          sort: 'scheduled_at',
+        }),
+        pb.collection('candidates').getFullList<Candidate>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+          sort: 'candidate_number',
+        }),
+        pb.collection('users').getFullList<UserRecord>({
+          sort: 'name',
+        }),
+        pb.collection('debate_qa').getFullList<DebateQA>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+          sort: '-priority',
+        }),
+        pb.collection('debate_events').getFullList<DebateEvent>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+          sort: 'event_date',
+        }),
+        pb.collection('debate_adversaries').getFullList<DebateAdversary>({
+          filter: `campaign_id = "${currentCampaign.id}"`,
+        }),
+      ])
 
       setActivities(actRes)
       setSupportPoints(spRes)
@@ -182,6 +212,9 @@ export const Dashboard: React.FC = () => {
       setScheduledPosts(postsRes)
       setLinkedCandidates(candRes)
       setTeamUsers(usersRes)
+      setDebateQAs(qaRes)
+      setDebateEvents(eventsRes)
+      setDebateAdversaries(advRes)
     } catch (err) {
       console.error('Error fetching dashboard data', err)
     } finally {
@@ -426,18 +459,18 @@ export const Dashboard: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
           <Button
-            onClick={() => setOnboardingOpen(true)}
-            variant="outline"
-            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-amber-400 font-semibold h-9 sm:h-10 px-3 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[120px]"
+            onClick={() => navigate('/debate-prep')}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[140px] shadow-md shadow-amber-500/20"
           >
-            <Compass className="w-4 h-4 mr-1.5 shrink-0" /> Guia de Início
+            <Swords className="w-4 h-4 mr-1.5 shrink-0" /> Sala de Debate
           </Button>
           <Button
             onClick={() => navigate('/team')}
             data-conversion="field_checkin_cta"
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[130px]"
+            variant="outline"
+            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[120px]"
           >
-            <Flame className="w-4 h-4 mr-1.5 shrink-0" /> Novo Check-in
+            <Flame className="w-4 h-4 mr-1.5 text-amber-400 shrink-0" /> Check-in
           </Button>
           <Button
             onClick={() => navigate('/ai-consultant')}
@@ -463,6 +496,138 @@ export const Dashboard: React.FC = () => {
         teamLocations={teamLocations}
         teamUsers={teamUsers}
       />
+
+      {/* NOVO CARD RESUMO: PREPARAÇÃO DE DEBATE */}
+      <Card className="border-amber-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-[#1e1b4b] text-white shadow-lg overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+              <Swords className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base font-extrabold text-white truncate">
+                  Preparação de Debate & Confronto Direto
+                </CardTitle>
+                <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] uppercase shrink-0">
+                  {
+                    debateQAs.filter(
+                      (q) => q.prep_status === 'ready' || q.prep_status === 'rehearsed',
+                    ).length
+                  }
+                  /{debateQAs.length} Prontas
+                </Badge>
+              </div>
+              <CardDescription className="text-xs text-slate-300 mt-0.5">
+                Perguntas mapeadas, respostas ensaiadas e dossiês de adversários para os próximos
+                encontros
+              </CardDescription>
+            </div>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => navigate('/debate-prep')}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3.5 shrink-0 self-start sm:self-auto"
+          >
+            Abrir Sala de Debate <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Button>
+        </CardHeader>
+
+        <CardContent className="p-4 sm:p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Sub-item 1: Perguntas Prontas */}
+            <div
+              onClick={() => navigate('/debate-prep')}
+              className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Perguntas Prontas / Ensaiadas</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-xl font-black text-white">
+                {
+                  debateQAs.filter(
+                    (q) => q.prep_status === 'ready' || q.prep_status === 'rehearsed',
+                  ).length
+                }
+                <span className="text-xs font-normal text-slate-400 ml-1">
+                  de {debateQAs.length}
+                </span>
+              </div>
+              <Progress
+                value={
+                  debateQAs.length > 0
+                    ? Math.round(
+                        (debateQAs.filter(
+                          (q) => q.prep_status === 'ready' || q.prep_status === 'rehearsed',
+                        ).length /
+                          debateQAs.length) *
+                          100,
+                      )
+                    : 0
+                }
+                className="h-1.5 bg-slate-800"
+              />
+            </div>
+
+            {/* Sub-item 2: Perguntas em Estudo */}
+            <div
+              onClick={() => navigate('/debate-prep')}
+              className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Em Rascunho / Estudo</span>
+                <Clock className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="text-xl font-black text-amber-400">
+                {
+                  debateQAs.filter(
+                    (q) => q.prep_status === 'draft' || q.prep_status === 'under_review',
+                  ).length
+                }
+                <span className="text-xs font-normal text-slate-400 ml-1">perguntas</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Necessitam de revisão pela coordenação</p>
+            </div>
+
+            {/* Sub-item 3: Adversários */}
+            <div
+              onClick={() => navigate('/debate-prep')}
+              className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Adversários Mapeados</span>
+                <ShieldAlert className="w-4 h-4 text-rose-400" />
+              </div>
+              <div className="text-xl font-black text-white">
+                {debateAdversaries.length}
+                <span className="text-xs font-normal text-slate-400 ml-1">candidatos</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Pontos fracos e polêmicas cadastrados</p>
+            </div>
+
+            {/* Sub-item 4: Próximo Debate */}
+            <div
+              onClick={() => navigate('/debate-prep')}
+              className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 transition-all cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Próximo Debate na TV</span>
+                <CalendarIcon className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="text-xs font-extrabold text-white truncate">
+                {debateEvents[0]?.title || 'Nenhum debate agendado'}
+              </div>
+              <p className="text-[10px] text-amber-400/90 font-medium truncate">
+                {debateEvents[0]
+                  ? `${new Date(debateEvents[0].event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} • ${debateEvents[0].broadcaster || 'Emissora'}`
+                  : 'Clique para agendar novo encontro'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Automated Inactive Zones Alerts Section */}
       <Card className="border-amber-200/80 bg-gradient-to-r from-amber-50/50 via-white to-amber-50/30 shadow-sm overflow-hidden">

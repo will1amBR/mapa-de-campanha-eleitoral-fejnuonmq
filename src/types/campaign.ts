@@ -272,3 +272,81 @@ export interface WeeklyGoal {
     created_by?: UserRecord
   }
 }
+
+// 6. Debate Preparation Types
+export type DebateStatus = 'upcoming' | 'in_progress' | 'completed' | 'cancelled'
+
+export interface DebateEvent {
+  id: string
+  campaign_id: string
+  title: string
+  broadcaster?: string
+  event_date: string
+  location?: string
+  status: DebateStatus
+  rules_summary?: string
+  notes?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
+
+export interface DebateAdversary {
+  id: string
+  campaign_id: string
+  name: string
+  party?: string
+  candidate_number?: string
+  target_position?: string
+  avatar_seed?: string
+  strengths?: string
+  weaknesses?: string
+  controversies?: string
+  style_tone?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
+
+export type DebateTopic =
+  | 'economia'
+  | 'saude'
+  | 'seguranca'
+  | 'educacao'
+  | 'transporte'
+  | 'habitacao'
+  | 'meio_ambiente'
+  | 'corrupcao'
+  | 'zeladoria'
+  | 'geral'
+
+export type DebateTargetType = 'to_adversary' | 'from_adversary' | 'journalist'
+
+export type DebatePrepStatus = 'draft' | 'under_review' | 'ready' | 'rehearsed'
+
+export interface DebateQA {
+  id: string
+  campaign_id: string
+  debate_id?: string
+  adversary_id?: string
+  topic: DebateTopic
+  target_type: DebateTargetType
+  question: string
+  prepared_answer?: string
+  counter_attack?: string
+  key_data_points?: string
+  prep_status: DebatePrepStatus
+  priority?: number
+  time_limit_seconds?: number
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+    debate_id?: DebateEvent
+    adversary_id?: DebateAdversary
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T22:57:32.228Z",
+  "generatedAt": "2026-08-29T03:24:40.846Z",
   "collections": [
     {
       "name": "users",
@@ -1157,6 +1157,303 @@
         "CREATE INDEX idx_weekly_goals_campaign ON weekly_goals (campaign_id)",
         "CREATE INDEX idx_weekly_goals_status ON weekly_goals (status)",
         "CREATE INDEX idx_weekly_goals_type ON weekly_goals (type)"
+      ]
+    },
+    {
+      "name": "debate_events",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "broadcaster",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["upcoming", "in_progress", "completed", "cancelled"]
+        },
+        {
+          "name": "rules_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_debate_events_camp ON debate_events (campaign_id)",
+        "CREATE INDEX idx_debate_events_date ON debate_events (event_date)",
+        "CREATE INDEX idx_debate_events_status ON debate_events (status)"
+      ]
+    },
+    {
+      "name": "debate_adversaries",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "party",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "candidate_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_position",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar_seed",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "strengths",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "weaknesses",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "controversies",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "style_tone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_debate_adv_camp ON debate_adversaries (campaign_id)",
+        "CREATE INDEX idx_debate_adv_name ON debate_adversaries (name)"
+      ]
+    },
+    {
+      "name": "debate_qa",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "debate_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "debate_events"
+        },
+        {
+          "name": "adversary_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "debate_adversaries"
+        },
+        {
+          "name": "topic",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "economia",
+            "saude",
+            "seguranca",
+            "educacao",
+            "transporte",
+            "habitacao",
+            "meio_ambiente",
+            "corrupcao",
+            "zeladoria",
+            "geral"
+          ]
+        },
+        {
+          "name": "target_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["to_adversary", "from_adversary", "journalist"]
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prepared_answer",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "counter_attack",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "key_data_points",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prep_status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["draft", "under_review", "ready", "rehearsed"]
+        },
+        {
+          "name": "priority",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "time_limit_seconds",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_debate_qa_camp ON debate_qa (campaign_id)",
+        "CREATE INDEX idx_debate_qa_topic ON debate_qa (topic)",
+        "CREATE INDEX idx_debate_qa_status ON debate_qa (prep_status)",
+        "CREATE INDEX idx_debate_qa_adv ON debate_qa (adversary_id)",
+        "CREATE INDEX idx_debate_qa_debate ON debate_qa (debate_id)"
       ]
     }
   ]
