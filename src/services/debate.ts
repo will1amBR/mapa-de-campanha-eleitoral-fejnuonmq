@@ -7,6 +7,9 @@ import type {
   DebatePrepStatus,
   DebateTargetType,
   DebateStatus,
+  DebateQALibraryItem,
+  DebateRehearsal,
+  LibraryTopic,
 } from '@/types/campaign'
 
 export const debateService = {
@@ -73,5 +76,34 @@ export const debateService = {
 
   async deleteQA(id: string): Promise<boolean> {
     return pb.collection('debate_qa').delete(id)
+  },
+
+  // Debate QA Library
+  async getLibraryItems(topic?: LibraryTopic): Promise<DebateQALibraryItem[]> {
+    const filter = topic ? `topic = "${topic}"` : ''
+    return pb.collection('debate_qa_library').getFullList<DebateQALibraryItem>({
+      filter,
+      sort: 'topic,title',
+    })
+  },
+
+  async createLibraryItem(data: Partial<DebateQALibraryItem>): Promise<DebateQALibraryItem> {
+    return pb.collection('debate_qa_library').create<DebateQALibraryItem>(data)
+  },
+
+  // Debate Rehearsals (Modo Ensaio)
+  async getRehearsals(campaignId: string): Promise<DebateRehearsal[]> {
+    return pb.collection('debate_rehearsals').getFullList<DebateRehearsal>({
+      filter: `campaign_id = "${campaignId}"`,
+      sort: '-created',
+    })
+  },
+
+  async createRehearsal(data: Partial<DebateRehearsal>): Promise<DebateRehearsal> {
+    return pb.collection('debate_rehearsals').create<DebateRehearsal>(data)
+  },
+
+  async deleteRehearsal(id: string): Promise<boolean> {
+    return pb.collection('debate_rehearsals').delete(id)
   },
 }

@@ -350,3 +350,94 @@ export interface DebateQA {
     adversary_id?: DebateAdversary
   }
 }
+
+// 7. Polls / Pesquisas Eleitorais
+export type PollScenario = 'estimulada_1t' | 'espontanea_1t' | 'segundo_turno' | 'rejeicao'
+
+export interface PollAdversaryResult {
+  adversary_name: string
+  party?: string
+  percentage: number
+}
+
+export interface Poll {
+  id: string
+  campaign_id: string
+  institute: string
+  poll_date: string
+  scenario: PollScenario
+  our_candidate_percentage: number
+  adversaries_results?: PollAdversaryResult[]
+  margin_of_error?: number
+  sample_size?: number
+  candidate_rank?: number
+  tse_registration?: string
+  analysis_notes?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
+
+// 8. Debate QA Library (Biblioteca de Perguntas por Área)
+export type LibraryDifficulty = 'facil' | 'medio' | 'dificil' | 'casca_de_banana'
+export type LibraryTopic =
+  | 'economia'
+  | 'saude'
+  | 'seguranca'
+  | 'educacao'
+  | 'transporte'
+  | 'habitacao'
+  | 'meio_ambiente'
+  | 'corrupcao'
+  | 'zeladoria'
+  | 'social'
+  | 'administracao'
+  | 'geral'
+
+export interface DebateQALibraryItem {
+  id: string
+  topic: LibraryTopic
+  title: string
+  question: string
+  suggested_answer?: string
+  suggested_counter_attack?: string
+  key_data_points?: string
+  difficulty?: LibraryDifficulty
+  time_limit_seconds?: number
+  created: string
+  updated: string
+}
+
+// 9. Debate Rehearsals (Modo Ensaio com Registro e Nota)
+export type SelfRating = 'otimo' | 'bom' | 'regular' | 'fraco'
+
+export interface RehearsalQuestionDetail {
+  qa_id?: string
+  question: string
+  topic: string
+  time_spent_seconds: number
+  time_limit_seconds: number
+  cited_data: boolean
+  self_rating: SelfRating
+  feedback?: string
+}
+
+export interface DebateRehearsal {
+  id: string
+  campaign_id: string
+  title: string
+  overall_score: number
+  questions_count: number
+  total_duration_seconds: number
+  time_discipline_score?: number
+  data_usage_score?: number
+  rehearsal_details?: RehearsalQuestionDetail[]
+  notes?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}

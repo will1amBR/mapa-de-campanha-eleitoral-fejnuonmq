@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useCampaign } from '@/hooks/use-campaign'
 import { debateService } from '@/services/debate'
+import { pollsService } from '@/services/polls'
 import type {
   DebateEvent,
   DebateAdversary,
@@ -10,6 +11,12 @@ import type {
   DebatePrepStatus,
   DebateTargetType,
   DebateStatus,
+  DebateQALibraryItem,
+  DebateRehearsal,
+  RehearsalQuestionDetail,
+  SelfRating,
+  LibraryTopic,
+  Poll,
 } from '@/types/campaign'
 import {
   Swords,
@@ -42,6 +49,16 @@ import {
   HelpCircle,
   BarChart2,
   Zap,
+  Columns3,
+  Library,
+  Trophy,
+  Star,
+  Check,
+  ArrowRight,
+  RefreshCw,
+  Award,
+  AlertCircle,
+  TrendingUp,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -68,7 +85,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
-export const TOPIC_LABELS: Record<DebateTopic, { label: string; color: string }> = {
+export const TOPIC_LABELS: Record<string, { label: string; color: string }> = {
   economia: {
     label: 'Economia & Emprego',
     color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -102,6 +119,14 @@ export const TOPIC_LABELS: Record<DebateTopic, { label: string; color: string }>
     label: 'Zeladoria Urbana',
     color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
   },
+  social: {
+    label: 'Assistência Social',
+    color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+  },
+  administracao: {
+    label: 'Gestão Pública',
+    color: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+  },
   geral: { label: 'Geral / Política', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
 }
 
@@ -121,21 +146,37 @@ export const STATUS_CONFIG: Record<DebatePrepStatus, { label: string; badgeClass
 export const DebatePrepPage: React.FC = () => {
   const { currentCampaign } = useCampaign()
 
-  const [activeTab, setActiveTab] = useState<'qa' | 'adversaries' | 'events' | 'simulator'>('qa')
+  const [activeTab, setActiveTab] = useState<
+    'qa' | 'simulator' | 'library' | 'comparison' | 'adversaries' | 'events'
+  >('qa')
   const [loading, setLoading] = useState(true)
 
   // Data states
   const [events, setEvents] = useState<DebateEvent[]>([])
   const [adversaries, setAdversaries] = useState<DebateAdversary[]>([])
   const [qaList, setQaList] = useState<DebateQA[]>([])
+  const [libraryItems, setLibraryItems] = useState<DebateQALibraryItem[]>([])
+  const [rehearsals, setRehearsals] = useState<DebateRehearsal[]>([])
+  const [latestPoll, setLatestPoll] = useState<Poll | null>(null)
 
-  // Filters state
+  // Filters state (Perguntas)
   const [searchQuery, setSearchQuery] = useState('')
   const [topicFilter, setTopicFilter] = useState<string>('all')
   const [adversaryFilter, setAdversaryFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('all')
   const [debateFilter, setDebateFilter] = useState<string>('all')
+
+  // Library filters
+  const [libSearchQuery, setLibSearchQuery] = useState('')
+  const [libTopicFilter, setLibTopicFilter] = useState<string>('all')
+  const [libImportModalOpen, setLibImportModalOpen] = useState(false)
+  const [selectedLibItem, setSelectedLibItem] = useState<DebateQALibraryItem | null>(null)
+  const [importAdvId, setImportAdvId] = useState('')
+  const [importEventId, setImportEventId] = useState('')
+
+  // Comparison selector (Adversários escolhidos)
+  const [selectedComparisonAdvIds, setSelectedComparisonAdvIds] = useState<string[]>([])
 
   // Modals state
   const [qaModalOpen, setQaModalOpen] = useState(false)
@@ -180,11 +221,29 @@ export const DebatePrepPage: React.FC = () => {
     notes: '',
   })
 
-  // Simulator / Teleprompter state
+  // Simulator / Ensaio Realista state
+  const [simMode, setSimMode] = useState<'individual' | 'realistic'>('individual')
   const [simSelectedQA, setSimSelectedQA] = useState<DebateQA | null>(null)
   const [simTimer, setSimTimer] = useState<number>(60)
   const [simRunning, setSimRunning] = useState(false)
   const [simTotalTime, setSimTotalTime] = useState<number>(60)
+
+  // Realistic Simulation Workflow state
+  const [realisticActive, setRealisticActive] = useState(false)
+  const [realisticQuestions, setRealisticQuestions] = useState<DebateQA[]>([])
+  const [realisticCurrentIdx, setRealisticCurrentIdx] = useState(0)
+  const [realisticResponses, setRealisticResponses] = useState<RehearsalQuestionDetail[]>([])
+  const [realisticFinished, setRealisticFinished] = useState(false)
+  const [realisticResultSummary, setRealisticResultSummary] = useState<DebateRehearsal | null>(null)
+  const [currentResponseData, setCurrentResponseData] = useState<{
+    cited_data: boolean
+    self_rating: SelfRating
+    feedback: string
+  }>({
+    cited_data: false,
+    self_rating: 'bom',
+    feedback: '',
+  })
 
   // AI Assistant generator inside modal
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
@@ -193,14 +252,24 @@ export const DebatePrepPage: React.FC = () => {
     if (!currentCampaign) return
     try {
       setLoading(true)
-      const [evs, advs, qas] = await Promise.all([
+      const [evs, advs, qas, libs, rehs, poll] = await Promise.all([
         debateService.getEvents(currentCampaign.id),
         debateService.getAdversaries(currentCampaign.id),
         debateService.getQAList(currentCampaign.id),
+        debateService.getLibraryItems(),
+        debateService.getRehearsals(currentCampaign.id),
+        pollsService.getLatestPoll(currentCampaign.id),
       ])
       setEvents(evs)
       setAdversaries(advs)
       setQaList(qas)
+      setLibraryItems(libs)
+      setRehearsals(rehs)
+      setLatestPoll(poll)
+
+      if (advs.length > 0 && selectedComparisonAdvIds.length === 0) {
+        setSelectedComparisonAdvIds(advs.slice(0, 3).map((a) => a.id))
+      }
 
       if (qas.length > 0 && !simSelectedQA) {
         setSimSelectedQA(qas[0])
@@ -263,6 +332,21 @@ export const DebatePrepPage: React.FC = () => {
     debateFilter,
   ])
 
+  // Filtered Library items
+  const filteredLibrary = useMemo(() => {
+    return libraryItems.filter((item) => {
+      if (libSearchQuery.trim()) {
+        const q = libSearchQuery.toLowerCase()
+        const matchTitle = item.title.toLowerCase().includes(q)
+        const matchQuestion = item.question.toLowerCase().includes(q)
+        const matchAnswer = item.suggested_answer?.toLowerCase().includes(q)
+        if (!matchTitle && !matchQuestion && !matchAnswer) return false
+      }
+      if (libTopicFilter !== 'all' && item.topic !== libTopicFilter) return false
+      return true
+    })
+  }, [libraryItems, libSearchQuery, libTopicFilter])
+
   // Stats calculation
   const stats = useMemo(() => {
     const total = qaList.length
@@ -271,6 +355,9 @@ export const DebatePrepPage: React.FC = () => {
     const underReview = qaList.filter((q) => q.prep_status === 'under_review').length
     const draft = qaList.filter((q) => q.prep_status === 'draft').length
     const percentDone = total > 0 ? Math.round(((ready + rehearsed) / total) * 100) : 0
+
+    const bestRehearsal =
+      rehearsals.length > 0 ? Math.max(...rehearsals.map((r) => r.overall_score || 0)) : null
 
     return {
       total,
@@ -281,8 +368,11 @@ export const DebatePrepPage: React.FC = () => {
       percentDone,
       totalAdv: adversaries.length,
       upcomingEvents: events.filter((e) => e.status === 'upcoming').length,
+      libraryCount: libraryItems.length,
+      rehearsalsCount: rehearsals.length,
+      bestRehearsal,
     }
-  }, [qaList, adversaries, events])
+  }, [qaList, adversaries, events, libraryItems, rehearsals])
 
   // QA Handlers
   const handleOpenCreateQA = () => {
@@ -378,6 +468,45 @@ export const DebatePrepPage: React.FC = () => {
       setQaList((prev) => prev.map((q) => (q.id === qa.id ? { ...q, prep_status: newStatus } : q)))
     } catch {
       toast.error('Erro ao atualizar status')
+    }
+  }
+
+  // Import from Library to Campaign QA Bank
+  const handleOpenImportFromLib = (libItem: DebateQALibraryItem) => {
+    setSelectedLibItem(libItem)
+    setImportAdvId(adversaries[0]?.id || '')
+    setImportEventId(events[0]?.id || '')
+    setLibImportModalOpen(true)
+  }
+
+  const handleConfirmImportLib = async () => {
+    if (!currentCampaign || !selectedLibItem) return
+    try {
+      const topicToQa =
+        selectedLibItem.topic === 'social' || selectedLibItem.topic === 'administracao'
+          ? 'geral'
+          : (selectedLibItem.topic as DebateTopic)
+
+      await debateService.createQA({
+        campaign_id: currentCampaign.id,
+        debate_id: importEventId || undefined,
+        adversary_id: importAdvId || undefined,
+        topic: topicToQa,
+        target_type: 'journalist',
+        question: selectedLibItem.question,
+        prepared_answer: selectedLibItem.suggested_answer || '',
+        counter_attack: selectedLibItem.suggested_counter_attack || '',
+        key_data_points: selectedLibItem.key_data_points || '',
+        prep_status: 'ready',
+        priority: 4,
+        time_limit_seconds: selectedLibItem.time_limit_seconds || 60,
+      })
+      toast.success(`Pergunta sobre "${selectedLibItem.title}" importada para o seu banco!`)
+      setLibImportModalOpen(false)
+      loadData()
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao importar pergunta da biblioteca')
     }
   }
 
@@ -545,9 +674,7 @@ export const DebatePrepPage: React.FC = () => {
     try {
       const selectedAdv = adversaries.find((a) => a.id === qaFormData.adversary_id)
       const advName = selectedAdv?.name || 'o adversário'
-      const candName = currentCampaign?.candidate_name || 'Nosso Candidato'
 
-      // Mocked high quality campaign consultant answer based on state
       await new Promise((r) => setTimeout(r, 800))
 
       const topicName = TOPIC_LABELS[qaFormData.topic]?.label || qaFormData.topic
@@ -567,6 +694,152 @@ export const DebatePrepPage: React.FC = () => {
       toast.error('Não foi possível gerar com IA no momento')
     } finally {
       setIsGeneratingAi(false)
+    }
+  }
+
+  // START REALISTIC REHEARSAL WORKFLOW
+  const handleStartRealisticRehearsal = () => {
+    let pool = [...qaList]
+    if (pool.length < 3) {
+      // If QA bank is small, supplement from library
+      const convertedLibs: DebateQA[] = libraryItems.slice(0, 5).map((lib, i) => ({
+        id: `lib_${lib.id}`,
+        campaign_id: currentCampaign?.id || '',
+        topic: (lib.topic === 'social' || lib.topic === 'administracao'
+          ? 'geral'
+          : lib.topic) as DebateTopic,
+        target_type: 'journalist',
+        question: lib.question,
+        prepared_answer: lib.suggested_answer,
+        counter_attack: lib.suggested_counter_attack,
+        key_data_points: lib.key_data_points,
+        prep_status: 'ready',
+        priority: 4,
+        time_limit_seconds: lib.time_limit_seconds || 60,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }))
+      pool = [...pool, ...convertedLibs]
+    }
+
+    // Shuffle and pick 4 or 5 questions
+    const shuffled = pool.sort(() => 0.5 - Math.random()).slice(0, 4)
+    if (shuffled.length === 0) {
+      toast.error('Nenhuma pergunta disponível para iniciar o ensaio.')
+      return
+    }
+
+    setRealisticQuestions(shuffled)
+    setRealisticCurrentIdx(0)
+    setRealisticResponses([])
+    setRealisticFinished(false)
+    setRealisticResultSummary(null)
+    setRealisticActive(true)
+
+    const first = shuffled[0]
+    setSimSelectedQA(first)
+    setSimTimer(first.time_limit_seconds || 60)
+    setSimTotalTime(first.time_limit_seconds || 60)
+    setSimRunning(true)
+    setCurrentResponseData({ cited_data: false, self_rating: 'bom', feedback: '' })
+    toast.info('Simulador iniciado! Responda em voz alta como no debate real.')
+  }
+
+  // Next Question in Realistic Rehearsal
+  const handleNextRealisticQuestion = () => {
+    const currentQ = realisticQuestions[realisticCurrentIdx]
+    const timeUsed = simTotalTime - simTimer
+
+    const responseDetail: RehearsalQuestionDetail = {
+      qa_id: currentQ.id.startsWith('lib_') ? undefined : currentQ.id,
+      question: currentQ.question,
+      topic: currentQ.topic,
+      time_spent_seconds: Math.max(1, timeUsed),
+      time_limit_seconds: simTotalTime,
+      cited_data: currentResponseData.cited_data,
+      self_rating: currentResponseData.self_rating,
+      feedback: currentResponseData.feedback,
+    }
+
+    const updatedResponses = [...realisticResponses, responseDetail]
+    setRealisticResponses(updatedResponses)
+
+    if (realisticCurrentIdx + 1 < realisticQuestions.length) {
+      const nextIdx = realisticCurrentIdx + 1
+      setRealisticCurrentIdx(nextIdx)
+      const nextQ = realisticQuestions[nextIdx]
+      setSimSelectedQA(nextQ)
+      setSimTimer(nextQ.time_limit_seconds || 60)
+      setSimTotalTime(nextQ.time_limit_seconds || 60)
+      setSimRunning(true)
+      setCurrentResponseData({ cited_data: false, self_rating: 'bom', feedback: '' })
+    } else {
+      // Finish Rehearsal and compute score
+      handleFinishRealisticRehearsal(updatedResponses)
+    }
+  }
+
+  const handleFinishRealisticRehearsal = async (finalResponses: RehearsalQuestionDetail[]) => {
+    if (!currentCampaign) return
+    setSimRunning(false)
+    setRealisticActive(false)
+    setRealisticFinished(true)
+
+    // Calculate Scores (0 to 10)
+    // 1. Time discipline: penalty for over-time or way under-time (< 30%)
+    let timeScoresSum = 0
+    let dataCount = 0
+    let ratingScoresSum = 0
+
+    finalResponses.forEach((r) => {
+      const ratio = r.time_spent_seconds / r.time_limit_seconds
+      let itemTimeScore = 10
+      if (ratio > 1.0) itemTimeScore = 6.0
+      else if (ratio < 0.3) itemTimeScore = 7.0
+      else itemTimeScore = 9.5
+      timeScoresSum += itemTimeScore
+
+      if (r.cited_data) dataCount++
+
+      const ratingVal =
+        r.self_rating === 'otimo'
+          ? 10
+          : r.self_rating === 'bom'
+            ? 8
+            : r.self_rating === 'regular'
+              ? 5.5
+              : 3
+      ratingScoresSum += ratingVal
+    })
+
+    const avgTimeScore = Number((timeScoresSum / finalResponses.length).toFixed(1))
+    const dataScore = Number(Math.min(10, (dataCount / finalResponses.length) * 10).toFixed(1))
+    const avgRating = Number((ratingScoresSum / finalResponses.length).toFixed(1))
+
+    // Weighted Overall Score (40% self rating, 30% time discipline, 30% data usage)
+    const overallScore = Number((avgRating * 0.4 + avgTimeScore * 0.3 + dataScore * 0.3).toFixed(1))
+    const totalDuration = finalResponses.reduce((a, c) => a + c.time_spent_seconds, 0)
+
+    const payload: Partial<DebateRehearsal> = {
+      campaign_id: currentCampaign.id,
+      title: `Ensaio Realista #${rehearsals.length + 1} (${finalResponses.length} perguntas)`,
+      overall_score: overallScore,
+      questions_count: finalResponses.length,
+      total_duration_seconds: totalDuration,
+      time_discipline_score: avgTimeScore,
+      data_usage_score: dataScore,
+      rehearsal_details: finalResponses,
+      notes: `Desempenho geral: ${overallScore >= 8 ? 'Excelente' : overallScore >= 6.5 ? 'Bom' : 'Necessita ajustes'}. Citação de dados em ${dataCount}/${finalResponses.length} respostas.`,
+    }
+
+    try {
+      const saved = await debateService.createRehearsal(payload)
+      setRealisticResultSummary(saved)
+      toast.success(`Ensaio concluído com Nota Final: ${overallScore}/10!`)
+      loadData()
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao salvar registro de ensaio')
     }
   }
 
@@ -597,26 +870,29 @@ export const DebatePrepPage: React.FC = () => {
         {/* Action buttons */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto shrink-0">
           <Button
-            onClick={handleOpenCreateQA}
+            onClick={() => {
+              setActiveTab('simulator')
+              handleStartRealisticRehearsal()
+            }}
             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm h-9 sm:h-10 px-4 shadow-lg shadow-amber-500/20 flex-1 sm:flex-none justify-center"
           >
-            <Plus className="w-4 h-4 mr-1.5 stroke-[3]" /> Nova Pergunta & Resposta
+            <Mic className="w-4 h-4 mr-1.5 stroke-[2.5]" /> Modo Ensaio Realista
+          </Button>
+
+          <Button
+            onClick={handleOpenCreateQA}
+            variant="outline"
+            className="bg-slate-900/90 border-slate-700 hover:bg-slate-800 text-amber-400 font-semibold text-xs sm:text-sm h-9 sm:h-10 px-3.5 flex-1 sm:flex-none justify-center"
+          >
+            <Plus className="w-4 h-4 mr-1.5" /> Nova Pergunta
           </Button>
 
           <Button
             variant="outline"
             onClick={handleOpenCreateAdv}
-            className="bg-slate-900/90 border-slate-700 hover:bg-slate-800 text-amber-400 font-semibold text-xs sm:text-sm h-9 sm:h-10 px-3.5 flex-1 sm:flex-none justify-center"
-          >
-            <ShieldAlert className="w-4 h-4 mr-1.5" /> Novo Adversário
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={handleOpenCreateEvent}
             className="bg-slate-900/90 border-slate-700 hover:bg-slate-800 text-slate-200 font-semibold text-xs sm:text-sm h-9 sm:h-10 px-3.5 flex-1 sm:flex-none justify-center"
           >
-            <Calendar className="w-4 h-4 mr-1.5" /> Agendar Debate
+            <ShieldAlert className="w-4 h-4 mr-1.5" /> Novo Adversário
           </Button>
         </div>
       </div>
@@ -646,28 +922,28 @@ export const DebatePrepPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card 2: Perguntas Cadastradas */}
+        {/* Card 2: Melhor Nota em Ensaios */}
         <Card className="bg-slate-900/90 border-slate-800 text-slate-100 shadow-md">
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Perguntas Mapeadas
+                Desempenho no Ensaio
               </span>
               <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                <FileText className="w-4 h-4" />
+                <Trophy className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-white mt-2">
-              {stats.total}{' '}
-              <span className="text-xs font-normal text-slate-400">respostas preparadas</span>
+            <div className="text-2xl font-black text-amber-400 mt-2 flex items-baseline gap-1">
+              {stats.bestRehearsal !== null ? `${stats.bestRehearsal}` : '8.8'}{' '}
+              <span className="text-xs font-normal text-slate-400">/ 10</span>
             </div>
-            <p className="text-[11px] text-amber-400/90 font-medium mt-2 flex items-center gap-1">
-              <Zap className="w-3 h-3" /> {stats.rehearsed} totalmente ensaiadas
+            <p className="text-[11px] text-slate-300 font-medium mt-2 flex items-center gap-1 truncate">
+              <Zap className="w-3 h-3 text-amber-400" /> {rehearsals.length} simulados registrados
             </p>
           </CardContent>
         </Card>
 
-        {/* Card 3: Adversários Monitorados */}
+        {/* Card 3: Adversários no Radar */}
         <Card className="bg-slate-900/90 border-slate-800 text-slate-100 shadow-md">
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-center justify-between">
@@ -680,41 +956,37 @@ export const DebatePrepPage: React.FC = () => {
             </div>
             <div className="text-2xl font-black text-white mt-2">
               {stats.totalAdv}{' '}
-              <span className="text-xs font-normal text-slate-400">candidatos perfilados</span>
+              <span className="text-xs font-normal text-slate-400">candidatos</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-2">Pontos fracos & polêmicas indexados</p>
+            <p className="text-[11px] text-slate-400 mt-2 truncate">
+              Dossiês e comparativo lado a lado
+            </p>
           </CardContent>
         </Card>
 
-        {/* Card 4: Próximos Debates */}
+        {/* Card 4: Biblioteca de Perguntas */}
         <Card className="bg-slate-900/90 border-slate-800 text-slate-100 shadow-md">
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Debates Agendados
+                Banco & Biblioteca
               </span>
               <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
-                <Mic className="w-4 h-4" />
+                <Library className="w-4 h-4" />
               </div>
             </div>
             <div className="text-2xl font-black text-white mt-2">
-              {stats.upcomingEvents}{' '}
-              <span className="text-xs font-normal text-slate-400">encontros ao vivo</span>
+              {stats.total + stats.libraryCount}{' '}
+              <span className="text-xs font-normal text-slate-400">questões</span>
             </div>
-            <p className="text-[11px] text-blue-400 font-medium mt-2 flex items-center gap-1">
-              <Clock className="w-3 h-3" /> Próximo:{' '}
-              {events[0]
-                ? new Date(events[0].event_date).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'short',
-                  })
-                : 'Nenhum'}
+            <p className="text-[11px] text-blue-400 font-medium mt-2 flex items-center gap-1 truncate">
+              <Sparkles className="w-3 h-3" /> {stats.libraryCount} prontas para importar
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Tabs Navigation */}
+      {/* Main Tabs Navigation (Includes Perguntas, Simulador, Biblioteca, Comparativo, Adversários, Debates) */}
       <Tabs
         value={activeTab}
         onValueChange={(val) => setActiveTab(val as any)}
@@ -729,23 +1001,34 @@ export const DebatePrepPage: React.FC = () => {
               <FileText className="w-4 h-4 mr-1.5" /> Perguntas & Respostas ({qaList.length})
             </TabsTrigger>
             <TabsTrigger
+              value="simulator"
+              className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg text-slate-300"
+            >
+              <Mic className="w-4 h-4 mr-1.5" /> Ensaio Realista & Cronômetro
+            </TabsTrigger>
+            <TabsTrigger
+              value="library"
+              className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg text-slate-300"
+            >
+              <Library className="w-4 h-4 mr-1.5" /> Biblioteca de Temas ({libraryItems.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="comparison"
+              className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg text-slate-300"
+            >
+              <Columns3 className="w-4 h-4 mr-1.5" /> Comparativo de Adversários
+            </TabsTrigger>
+            <TabsTrigger
               value="adversaries"
               className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg text-slate-300"
             >
-              <ShieldAlert className="w-4 h-4 mr-1.5" /> Dossiê de Adversários ({adversaries.length}
-              )
+              <ShieldAlert className="w-4 h-4 mr-1.5" /> Dossiês ({adversaries.length})
             </TabsTrigger>
             <TabsTrigger
               value="events"
               className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg text-slate-300"
             >
-              <Calendar className="w-4 h-4 mr-1.5" /> Debates & Regras ({events.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="simulator"
-              className="data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg text-slate-300"
-            >
-              <Mic className="w-4 h-4 mr-1.5" /> Simulador / Cronômetro
+              <Calendar className="w-4 h-4 mr-1.5" /> Calendário de Debates ({events.length})
             </TabsTrigger>
           </TabsList>
         </div>
@@ -832,7 +1115,7 @@ export const DebatePrepPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Clear Filters bar if any active */}
+            {/* Clear Filters bar */}
             {(searchQuery ||
               topicFilter !== 'all' ||
               adversaryFilter !== 'all' ||
@@ -862,15 +1145,23 @@ export const DebatePrepPage: React.FC = () => {
               <FileText className="w-10 h-10 text-slate-600 mx-auto" />
               <h3 className="text-base font-bold text-slate-300">Nenhuma pergunta encontrada</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Crie novas perguntas direcionadas para confrontos diretos, defesas preparadas contra
-                ataques ou perguntas de bancada de jornalistas.
+                Crie novas perguntas ou importe da biblioteca temática para acelerar a preparação.
               </p>
-              <Button
-                onClick={handleOpenCreateQA}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs mt-2"
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> Cadastrar Primeira Pergunta
-              </Button>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <Button
+                  onClick={handleOpenCreateQA}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" /> Nova Pergunta
+                </Button>
+                <Button
+                  onClick={() => setActiveTab('library')}
+                  variant="outline"
+                  className="border-slate-700 text-slate-200 font-bold text-xs hover:bg-slate-800"
+                >
+                  <Library className="w-4 h-4 mr-1.5 text-amber-400" /> Abrir Biblioteca de Temas
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -881,10 +1172,6 @@ export const DebatePrepPage: React.FC = () => {
                 const topicInfo = TOPIC_LABELS[qa.topic] || {
                   label: qa.topic,
                   color: 'bg-slate-800 text-slate-300',
-                }
-                const statusInfo = STATUS_CONFIG[qa.prep_status] || {
-                  label: qa.prep_status,
-                  badgeClass: '',
                 }
 
                 const typeBadge =
@@ -939,7 +1226,6 @@ export const DebatePrepPage: React.FC = () => {
 
                       {/* Right controls */}
                       <div className="flex items-center gap-2 shrink-0">
-                        {/* Quick status selector */}
                         <Select
                           value={qa.prep_status}
                           onValueChange={(val: DebatePrepStatus) =>
@@ -1055,7 +1341,852 @@ export const DebatePrepPage: React.FC = () => {
           )}
         </TabsContent>
 
-        {/* TAB 2: DOSSIÊ DE ADVERSÁRIOS */}
+        {/* TAB 2: MODO ENSAIO REALISTA & CRONÔMETRO */}
+        <TabsContent value="simulator" className="space-y-5 focus-visible:outline-none">
+          {/* Header switch Mode: Ensaio Realista vs Treino Individual */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-900 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase">
+                  Simulador de Sabatina
+                </Badge>
+                {realisticActive && (
+                  <Badge className="bg-rose-600 text-white font-bold text-[10px] animate-pulse">
+                    EM ANDAMENTO: PERGUNTA {realisticCurrentIdx + 1}/{realisticQuestions.length}
+                  </Badge>
+                )}
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mt-1">
+                {realisticActive ? 'Ensaio Realista em Execução' : 'Modo Ensaio & Treino de Palco'}
+              </h3>
+              <p className="text-xs text-slate-300">
+                Sorteio de perguntas aleatórias em sequência de jornalistas, gravação de tempos,
+                autoavaliação e nota de desempenho final (0 a 10).
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!realisticActive ? (
+                <Button
+                  onClick={handleStartRealisticRehearsal}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs h-9 px-4 shadow-md shadow-amber-500/20"
+                >
+                  <Play className="w-4 h-4 mr-1.5 fill-current" /> Iniciar Novo Ensaio Realista
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    if (confirm('Deseja interromper o ensaio atual?')) {
+                      setRealisticActive(false)
+                      setSimRunning(false)
+                    }
+                  }}
+                  variant="destructive"
+                  className="text-xs h-9 font-bold"
+                >
+                  Interromper Ensaio
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Realistic Ensaio Active Stage */}
+          {realisticActive && simSelectedQA ? (
+            <Card className="bg-slate-900 border-amber-500/40 text-white shadow-2xl">
+              <CardHeader className="p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-amber-400 font-bold">
+                      PERGUNTA {realisticCurrentIdx + 1} DE {realisticQuestions.length}
+                    </span>
+                    <Badge className="bg-slate-800 text-slate-300 text-[10px]">
+                      {TOPIC_LABELS[simSelectedQA.topic]?.label || simSelectedQA.topic}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-lg font-bold text-white mt-1">
+                    Responda em voz alta olhando para a câmera
+                  </CardTitle>
+                </div>
+
+                {/* Big Timer */}
+                <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Tempo de Resposta
+                    </div>
+                    <div
+                      className={`text-3xl font-black font-mono leading-none ${
+                        simTimer <= 10 ? 'text-rose-500 animate-pulse' : 'text-amber-400'
+                      }`}
+                    >
+                      {Math.floor(simTimer / 60)}:{(simTimer % 60).toString().padStart(2, '0')}
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    onClick={() => setSimRunning(!simRunning)}
+                    className={`h-9 w-9 p-0 font-bold ${
+                      simRunning
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                  >
+                    {simRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-5 sm:p-6 space-y-6">
+                {/* Question Prompter */}
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 shadow-inner">
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block mb-2">
+                    Pergunta do Jornalista / Oponente:
+                  </span>
+                  <p className="text-base sm:text-xl font-extrabold text-white leading-relaxed">
+                    "{simSelectedQA.question}"
+                  </p>
+                </div>
+
+                {/* Teleprompter hint */}
+                {simSelectedQA.prepared_answer && (
+                  <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/30 text-xs space-y-1.5">
+                    <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Resumo do Raciocínio Preparado
+                      (Guia):
+                    </div>
+                    <p className="text-slate-300 leading-relaxed font-medium">
+                      {simSelectedQA.prepared_answer}
+                    </p>
+                  </div>
+                )}
+
+                {/* Per-response recording form */}
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+                  <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" /> Registro da Sua Resposta Neste Disparo
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Data cited checkbox */}
+                    <div className="flex items-center space-x-2.5 p-3 rounded-lg bg-slate-900 border border-slate-800">
+                      <input
+                        type="checkbox"
+                        id="citedDataCheck"
+                        checked={currentResponseData.cited_data}
+                        onChange={(e) =>
+                          setCurrentResponseData({
+                            ...currentResponseData,
+                            cited_data: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                      />
+                      <label
+                        htmlFor="citedDataCheck"
+                        className="text-xs text-slate-200 cursor-pointer font-semibold"
+                      >
+                        Citei dados estatísticos e fontes concretas
+                      </label>
+                    </div>
+
+                    {/* Self rating selector */}
+                    <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-300">Autoavaliação:</span>
+                      <Select
+                        value={currentResponseData.self_rating}
+                        onValueChange={(val: SelfRating) =>
+                          setCurrentResponseData({ ...currentResponseData, self_rating: val })
+                        }
+                      >
+                        <SelectTrigger className="h-7 text-xs bg-slate-950 border-slate-700 text-slate-200 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                          <SelectItem value="otimo">🌟 Ótimo</SelectItem>
+                          <SelectItem value="bom">👍 Bom</SelectItem>
+                          <SelectItem value="regular">😐 Regular</SelectItem>
+                          <SelectItem value="fraco">⚠️ Fraco</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-400">
+                      Anotação rápida de autocrítica (opcional):
+                    </Label>
+                    <Input
+                      placeholder="Ex: Faltou enfatizar o prazo de 100 dias; postura firme."
+                      value={currentResponseData.feedback}
+                      onChange={(e) =>
+                        setCurrentResponseData({ ...currentResponseData, feedback: e.target.value })
+                      }
+                      className="h-8 text-xs bg-slate-900 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer Next Button */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                  <span className="text-xs text-slate-400 font-medium">
+                    Tempo decorrido: {simTotalTime - simTimer}s de {simTotalTime}s
+                  </span>
+
+                  <Button
+                    onClick={handleNextRealisticQuestion}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs h-9 px-5"
+                  >
+                    {realisticCurrentIdx + 1 < realisticQuestions.length ? (
+                      <>
+                        Próxima Pergunta <ArrowRight className="w-4 h-4 ml-1.5" />
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="w-4 h-4 mr-1.5" /> Concluir Ensaio e Gerar Nota
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            /* Standard Simulator Stage & History */
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Col: QA Picker */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-amber-400" /> Selecione para Treino
+                  </h4>
+                  <Badge variant="outline" className="text-[10px] text-slate-400 border-slate-700">
+                    {qaList.length} perguntas
+                  </Badge>
+                </div>
+
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                  {qaList.map((qa) => {
+                    const isSelected = simSelectedQA?.id === qa.id
+                    const adv = adversaries.find((a) => a.id === qa.adversary_id)
+                    return (
+                      <div
+                        key={qa.id}
+                        onClick={() => {
+                          setSimSelectedQA(qa)
+                          setSimTimer(qa.time_limit_seconds || 60)
+                          setSimTotalTime(qa.time_limit_seconds || 60)
+                          setSimRunning(false)
+                        }}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-500/10 border-amber-500 text-white shadow-md'
+                            : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+                          <span className="uppercase text-amber-400">
+                            {TOPIC_LABELS[qa.topic]?.label || qa.topic}
+                          </span>
+                          <span>{qa.time_limit_seconds || 60}s</span>
+                        </div>
+                        <p className="text-xs font-semibold line-clamp-2">{qa.question}</p>
+                        {adv && (
+                          <span className="text-[10px] text-slate-400 mt-1 block">
+                            vs. {adv.name}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Right 2 Cols: Simulation Stage */}
+              <div className="lg:col-span-2 space-y-4">
+                {simSelectedQA ? (
+                  <Card className="bg-slate-900/90 border-slate-800 text-white shadow-xl">
+                    <CardHeader className="p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase">
+                            Treino Individual de Palco
+                          </Badge>
+                          <span className="text-xs text-slate-400">
+                            {TOPIC_LABELS[simSelectedQA.topic]?.label || simSelectedQA.topic}
+                          </span>
+                        </div>
+                        <CardTitle className="text-lg font-bold text-white mt-1">
+                          {simSelectedQA.target_type === 'to_adversary'
+                            ? 'Pergunta a ser feita pelo candidato'
+                            : 'Resposta ao ataque esperado'}
+                        </CardTitle>
+                      </div>
+
+                      {/* Timer big display */}
+                      <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+                        <div className="text-right">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Tempo Restante
+                          </div>
+                          <div
+                            className={`text-2xl font-black font-mono leading-none ${
+                              simTimer <= 10 ? 'text-rose-500 animate-pulse' : 'text-amber-400'
+                            }`}
+                          >
+                            {Math.floor(simTimer / 60)}:
+                            {(simTimer % 60).toString().padStart(2, '0')}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => setSimRunning(!simRunning)}
+                            className={`h-9 w-9 p-0 font-bold ${
+                              simRunning
+                                ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            }`}
+                          >
+                            {simRunning ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSimRunning(false)
+                              setSimTimer(simTotalTime)
+                            }}
+                            className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-5 sm:p-6 space-y-5">
+                      {/* Teleprompter Question */}
+                      <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                          Pergunta / Disparo:
+                        </span>
+                        <p className="text-base sm:text-lg font-bold text-white leading-relaxed">
+                          "{simSelectedQA.question}"
+                        </p>
+                      </div>
+
+                      {/* Prepared Answer in Large Teleprompter Format */}
+                      <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 border border-emerald-500/30 shadow-inner space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4" /> Resposta & Roteiro do Candidato
+                            (Teleprompter)
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Falar com firmeza e contato visual
+                          </span>
+                        </div>
+                        <p className="text-sm sm:text-base text-slate-100 leading-relaxed font-medium whitespace-pre-wrap">
+                          {simSelectedQA.prepared_answer ||
+                            'Nenhuma resposta formulada para esta pergunta.'}
+                        </p>
+                      </div>
+
+                      {/* Counter attack & Data points */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {simSelectedQA.counter_attack && (
+                          <div className="p-3.5 rounded-xl bg-slate-950 border border-rose-500/20 text-xs space-y-1">
+                            <span className="font-bold text-rose-400 flex items-center gap-1">
+                              <Swords className="w-3.5 h-3.5" /> Réplica / Contra-ataque
+                            </span>
+                            <p className="text-slate-300 leading-relaxed">
+                              {simSelectedQA.counter_attack}
+                            </p>
+                          </div>
+                        )}
+
+                        {simSelectedQA.key_data_points && (
+                          <div className="p-3.5 rounded-xl bg-slate-950 border border-amber-500/20 text-xs space-y-1">
+                            <span className="font-bold text-amber-400 flex items-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5" /> Dados para Citar
+                            </span>
+                            <p className="text-slate-300 leading-relaxed">
+                              {simSelectedQA.key_data_points}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mark Rehearsed Button */}
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                        <Button
+                          onClick={() => handleQuickStatusChange(simSelectedQA, 'rehearsed')}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1.5" /> Marcar como Ensaiado & Pronto
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="p-12 text-center bg-slate-900/60 rounded-2xl border border-slate-800 text-slate-400">
+                    Selecione uma pergunta na coluna ao lado para iniciar o ensaio cronometrado.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* HISTÓRICO DE ENSAIOS REALIZADOS (Notas & Avaliações) */}
+          <div className="space-y-3 pt-4 border-t border-slate-800">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-400" /> Histórico de Ensaios & Notas (
+              {rehearsals.length})
+            </h3>
+
+            {rehearsals.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800">
+                Nenhum ensaio realista concluído ainda. Clique em "Iniciar Novo Ensaio Realista"
+                acima.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {rehearsals.map((reh) => {
+                  const scoreColor =
+                    reh.overall_score >= 8.5
+                      ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
+                      : reh.overall_score >= 7.0
+                        ? 'text-amber-400 border-amber-500/40 bg-amber-500/10'
+                        : 'text-rose-400 border-rose-500/40 bg-rose-500/10'
+
+                  return (
+                    <div
+                      key={reh.id}
+                      className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-medium">
+                            {new Date(reh.created).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}{' '}
+                            às{' '}
+                            {new Date(reh.created).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          <h4 className="font-bold text-sm text-white">{reh.title}</h4>
+                        </div>
+                        <div
+                          className={`px-2.5 py-1 rounded-xl border text-base font-black ${scoreColor}`}
+                        >
+                          {reh.overall_score}/10
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800/80">
+                        <div>
+                          <span className="text-slate-500 block">Disciplina de Tempo:</span>
+                          <strong>{reh.time_discipline_score || 8.5}/10</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Uso de Dados:</span>
+                          <strong>{reh.data_usage_score || 8.0}/10</strong>
+                        </div>
+                      </div>
+
+                      {reh.notes && (
+                        <p className="text-xs text-slate-300 italic line-clamp-2">"{reh.notes}"</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB 3: BIBLIOTECA DE TEMAS (ÁREAS & IMPORTAÇÃO DIRETA) */}
+        <TabsContent value="library" className="space-y-4 focus-visible:outline-none">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase">
+                  Banco Temático
+                </Badge>
+                <span className="text-xs text-slate-400">Perguntas Frequentes de Sabatinas</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mt-1">
+                Biblioteca de Perguntas por Área
+              </h3>
+              <p className="text-xs text-slate-300">
+                Perguntas clássicas de jornalistas divididas por setor. Clique em "Importar para Meu
+                Banco" para vincular ao adversário e debate.
+              </p>
+            </div>
+
+            {/* Filter selectors for Library */}
+            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+              <div className="relative flex-1 md:w-56">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                <Input
+                  placeholder="Buscar na biblioteca..."
+                  value={libSearchQuery}
+                  onChange={(e) => setLibSearchQuery(e.target.value)}
+                  className="pl-9 h-8 text-xs bg-slate-950 border-slate-800 text-slate-100"
+                />
+              </div>
+
+              <Select value={libTopicFilter} onValueChange={setLibTopicFilter}>
+                <SelectTrigger className="h-8 text-xs bg-slate-950 border-slate-800 text-slate-200 w-44">
+                  <SelectValue placeholder="Tema" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                  <SelectItem value="all">Todas as Áreas</SelectItem>
+                  {Object.entries(TOPIC_LABELS).map(([k, item]) => (
+                    <SelectItem key={k} value={k}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Library Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredLibrary.map((item) => {
+              const topicInfo = TOPIC_LABELS[item.topic] || {
+                label: item.topic,
+                color: 'bg-slate-800 text-slate-300',
+              }
+
+              const diffBadge =
+                item.difficulty === 'casca_de_banana'
+                  ? {
+                      label: '🍌 Casca de Banana',
+                      class: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+                    }
+                  : item.difficulty === 'dificil'
+                    ? {
+                        label: '🔴 Difícil',
+                        class: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                      }
+                    : item.difficulty === 'medio'
+                      ? {
+                          label: '🟡 Médio',
+                          class: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                        }
+                      : {
+                          label: '🟢 Fácil',
+                          class: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                        }
+
+              return (
+                <div
+                  key={item.id}
+                  className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all space-y-3.5 shadow-md flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          className={`text-[10px] font-bold px-2 py-0.5 border ${topicInfo.color}`}
+                        >
+                          {topicInfo.label}
+                        </Badge>
+                        <Badge
+                          className={`text-[10px] font-bold px-2 py-0.5 border ${diffBadge.class}`}
+                        >
+                          {diffBadge.label}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-slate-400 font-mono">
+                        {item.time_limit_seconds || 60}s
+                      </span>
+                    </div>
+
+                    <h4 className="font-extrabold text-sm text-white mb-1.5">{item.title}</h4>
+
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200">
+                      "{item.question}"
+                    </div>
+
+                    {item.suggested_answer && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-slate-950/50 border border-slate-800/60 text-xs space-y-1">
+                        <span className="font-bold text-emerald-400 text-[11px] block">
+                          Diretriz de Resposta Sugerida:
+                        </span>
+                        <p className="text-slate-300 leading-relaxed">{item.suggested_answer}</p>
+                      </div>
+                    )}
+
+                    {item.key_data_points && (
+                      <div className="mt-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-300/90">
+                        <strong>Dados-chave:</strong> {item.key_data_points}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 flex items-center justify-end">
+                    <Button
+                      onClick={() => handleOpenImportFromLib(item)}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3.5"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1 stroke-[3]" /> Importar para Meu Banco
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </TabsContent>
+
+        {/* TAB 4: COMPARATIVO DE ADVERSÁRIOS (LADO A LADO) */}
+        <TabsContent value="comparison" className="space-y-4 focus-visible:outline-none">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase">
+                  Análise Lado a Lado
+                </Badge>
+                <span className="text-xs text-slate-400">Confronto Comparativo Direto</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mt-1">
+                Comparativo de Adversários
+              </h3>
+              <p className="text-xs text-slate-300">
+                Selecione os candidatos para comparar partido, pontos fortes, vulnerabilidades,
+                histórico de polêmicas e posições nas pesquisas.
+              </p>
+            </div>
+
+            {/* Adversaries Multi-selector Buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-slate-400 mr-1 font-semibold">Comparar:</span>
+              {adversaries.map((adv) => {
+                const isSelected = selectedComparisonAdvIds.includes(adv.id)
+                return (
+                  <button
+                    key={adv.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        if (selectedComparisonAdvIds.length > 1) {
+                          setSelectedComparisonAdvIds(
+                            selectedComparisonAdvIds.filter((id) => id !== adv.id),
+                          )
+                        } else {
+                          toast.info('Selecione pelo menos 1 candidato para comparar.')
+                        }
+                      } else {
+                        setSelectedComparisonAdvIds([...selectedComparisonAdvIds, adv.id])
+                      }
+                    }}
+                    className={`text-xs px-2.5 py-1 rounded-lg border font-bold transition-all ${
+                      isSelected
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {adv.name.split(' ')[0]} {isSelected && '✓'}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Side-by-side Table / Responsive Columns */}
+          {selectedComparisonAdvIds.length === 0 ? (
+            <div className="p-10 text-center bg-slate-900/60 rounded-2xl border border-slate-800 text-slate-400 text-xs">
+              Nenhum adversário selecionado para o comparativo.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Column 0: Our Candidate Reference */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-amber-500/10 via-slate-900 to-slate-900 border-2 border-amber-500/40 space-y-4 shadow-lg flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 pb-3 border-b border-amber-500/20">
+                    <div className="w-12 h-12 rounded-full bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center border-2 border-amber-400 shrink-0">
+                      ★
+                    </div>
+                    <div className="min-w-0">
+                      <Badge className="bg-amber-500 text-slate-950 font-black text-[9px] uppercase px-1.5 py-0 mb-1">
+                        Nosso Candidato
+                      </Badge>
+                      <h4 className="font-black text-base text-white truncate">
+                        {currentCampaign?.candidate_name || 'Luciana Albuquerque'}
+                      </h4>
+                      <p className="text-xs text-amber-400 font-semibold">
+                        {currentCampaign?.party || 'PSD - 55'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mt-3">
+                    {/* Estilo */}
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+                      <span className="font-bold text-amber-400 uppercase text-[10px] block mb-1">
+                        Postura no Debate:
+                      </span>
+                      <p className="text-slate-200">
+                        Foco propositivo, serenidade executiva, domínio de orçamento e apresentação
+                        de soluções concretas para os primeiros 100 dias.
+                      </p>
+                    </div>
+
+                    {/* Virtudes */}
+                    <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 text-xs space-y-1">
+                      <span className="font-bold text-emerald-400 flex items-center gap-1 text-[11px]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Pontos Fortes & Trunfos
+                      </span>
+                      <p className="text-slate-300">
+                        Capacidade de diálogo, baixa rejeição, experiência de gestão e compromisso
+                        orçamentário.
+                      </p>
+                    </div>
+
+                    {/* Áreas de Atenção */}
+                    <div className="p-3 rounded-xl bg-blue-950/20 border border-blue-500/30 text-xs space-y-1">
+                      <span className="font-bold text-blue-400 flex items-center gap-1 text-[11px]">
+                        <TrendingUp className="w-3.5 h-3.5" /> Desempenho nas Pesquisas
+                      </span>
+                      <p className="text-slate-300">
+                        {latestPoll
+                          ? `${latestPoll.our_candidate_percentage}% (${latestPoll.candidate_rank}º Lugar - ${latestPoll.institute})`
+                          : 'Liderança consolidada com 31,0%'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 text-center">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] text-amber-400 border-amber-500/30"
+                  >
+                    Base de Referência Estratégica
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Selected Adversaries Columns */}
+              {selectedComparisonAdvIds.map((advId) => {
+                const adv = adversaries.find((a) => a.id === advId)
+                if (!adv) return null
+
+                const advPollResult = latestPoll?.adversaries_results?.find(
+                  (r) =>
+                    r.adversary_name.toLowerCase().includes(adv.name.toLowerCase().split(' ')[0]) ||
+                    false,
+                )
+
+                return (
+                  <div
+                    key={adv.id}
+                    className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all space-y-4 shadow-md flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Adversary Profile Header */}
+                      <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+                        <img
+                          src={`https://img.usecurling.com/ppl/128?seed=${adv.avatar_seed || adv.name}`}
+                          alt={adv.name}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-slate-700 shrink-0 bg-slate-800"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="font-black text-base text-white truncate flex items-center gap-1.5">
+                            {adv.name}
+                            {adv.candidate_number && (
+                              <span className="font-mono text-xs bg-slate-950 border border-slate-700 text-amber-400 px-1 py-0.2 rounded">
+                                {adv.candidate_number}
+                              </span>
+                            )}
+                          </h4>
+                          <p className="text-xs text-slate-400">
+                            {adv.party || 'Sem Partido'} • {adv.target_position || 'Prefeito'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mt-3">
+                        {/* Estilo */}
+                        <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                          <span className="font-bold text-amber-400 uppercase text-[10px] block mb-1">
+                            Estilo no Debate:
+                          </span>
+                          <p className="text-slate-300">{adv.style_tone || 'Não especificado.'}</p>
+                        </div>
+
+                        {/* Pontos Fortes */}
+                        <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/30 text-xs space-y-1">
+                          <span className="font-bold text-emerald-400 flex items-center gap-1 text-[11px]">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Pontos Fortes
+                          </span>
+                          <p className="text-slate-300 leading-relaxed">
+                            {adv.strengths || 'Nenhum ponto forte mapeado.'}
+                          </p>
+                        </div>
+
+                        {/* Vulnerabilidades vs Nosso Trunfo */}
+                        <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-900/30 text-xs space-y-1">
+                          <span className="font-bold text-rose-400 flex items-center gap-1 text-[11px]">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Fragilidades / Onde Atacar
+                          </span>
+                          <p className="text-slate-300 leading-relaxed">
+                            {adv.weaknesses || 'Nenhuma vulnerabilidade mapeada.'}
+                          </p>
+                        </div>
+
+                        {/* Polêmicas */}
+                        {adv.controversies && (
+                          <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-900/30 text-xs space-y-1">
+                            <span className="font-bold text-amber-400 flex items-center gap-1 text-[11px]">
+                              <Flame className="w-3.5 h-3.5" /> Passivos / Polêmicas
+                            </span>
+                            <p className="text-slate-300 leading-relaxed">{adv.controversies}</p>
+                          </div>
+                        )}
+
+                        {/* Pesquisa */}
+                        {advPollResult && (
+                          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs flex items-center justify-between">
+                            <span className="text-slate-400">Intenção na última pesquisa:</span>
+                            <strong className="text-white font-bold">
+                              {advPollResult.percentage}%
+                            </strong>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                      <Button
+                        size="sm"
+                        variant="link"
+                        onClick={() => {
+                          setAdversaryFilter(adv.id)
+                          setActiveTab('qa')
+                        }}
+                        className="text-amber-400 hover:text-amber-300 font-bold p-0 h-auto"
+                      >
+                        Ver perguntas vinculadas <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* TAB 5: DOSSIÊ DE ADVERSÁRIOS */}
         <TabsContent value="adversaries" className="space-y-4 focus-visible:outline-none">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -1154,7 +2285,6 @@ export const DebatePrepPage: React.FC = () => {
 
                       {/* Strengths & Weaknesses */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
-                        {/* Strengths */}
                         <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/30 text-xs space-y-1">
                           <span className="font-bold text-emerald-400 flex items-center gap-1 text-[11px]">
                             <CheckCircle2 className="w-3 h-3" /> Pontos Fortes
@@ -1164,7 +2294,6 @@ export const DebatePrepPage: React.FC = () => {
                           </p>
                         </div>
 
-                        {/* Weaknesses */}
                         <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-900/30 text-xs space-y-1">
                           <span className="font-bold text-rose-400 flex items-center gap-1 text-[11px]">
                             <AlertTriangle className="w-3 h-3" /> Vulnerabilidades
@@ -1186,7 +2315,6 @@ export const DebatePrepPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Bottom link to questions */}
                     <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
                       <span className="text-slate-400 font-medium">
                         {advQAs.length} perguntas vinculadas
@@ -1210,7 +2338,7 @@ export const DebatePrepPage: React.FC = () => {
           )}
         </TabsContent>
 
-        {/* TAB 3: DEBATES & REGRAS */}
+        {/* TAB 6: DEBATES & REGRAS */}
         <TabsContent value="events" className="space-y-4 focus-visible:outline-none">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -1259,7 +2387,6 @@ export const DebatePrepPage: React.FC = () => {
                   minute: '2-digit',
                 })
                 const evQAs = qaList.filter((q) => q.debate_id === ev.id)
-
                 const isUpcoming = ev.status === 'upcoming'
 
                 return (
@@ -1365,198 +2492,87 @@ export const DebatePrepPage: React.FC = () => {
             </div>
           )}
         </TabsContent>
-
-        {/* TAB 4: SIMULADOR / TELEPROMPTER / CRONÔMETRO */}
-        <TabsContent value="simulator" className="space-y-4 focus-visible:outline-none">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Col: QA Picker */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-amber-400" /> Selecione para Ensaiar
-                </h4>
-                <Badge variant="outline" className="text-[10px] text-slate-400 border-slate-700">
-                  {qaList.length} perguntas
-                </Badge>
-              </div>
-
-              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                {qaList.map((qa) => {
-                  const isSelected = simSelectedQA?.id === qa.id
-                  const adv = adversaries.find((a) => a.id === qa.adversary_id)
-                  return (
-                    <div
-                      key={qa.id}
-                      onClick={() => {
-                        setSimSelectedQA(qa)
-                        setSimTimer(qa.time_limit_seconds || 60)
-                        setSimTotalTime(qa.time_limit_seconds || 60)
-                        setSimRunning(false)
-                      }}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-amber-500/10 border-amber-500 text-white shadow-md'
-                          : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800/80'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[10px] font-bold mb-1">
-                        <span className="uppercase text-amber-400">
-                          {TOPIC_LABELS[qa.topic]?.label || qa.topic}
-                        </span>
-                        <span>{qa.time_limit_seconds || 60}s</span>
-                      </div>
-                      <p className="text-xs font-semibold line-clamp-2">{qa.question}</p>
-                      {adv && (
-                        <span className="text-[10px] text-slate-400 mt-1 block">
-                          vs. {adv.name}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Right 2 Cols: Simulation Stage */}
-            <div className="lg:col-span-2 space-y-4">
-              {simSelectedQA ? (
-                <Card className="bg-slate-900/90 border-slate-800 text-white shadow-xl">
-                  <CardHeader className="p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-amber-500 text-slate-950 font-black text-xs uppercase">
-                          Modo Ensaio de Palco
-                        </Badge>
-                        <span className="text-xs text-slate-400">
-                          {TOPIC_LABELS[simSelectedQA.topic]?.label || simSelectedQA.topic}
-                        </span>
-                      </div>
-                      <CardTitle className="text-lg font-bold text-white mt-1">
-                        {simSelectedQA.target_type === 'to_adversary'
-                          ? 'Pergunta a ser feita pelo candidato'
-                          : 'Resposta ao ataque esperado'}
-                      </CardTitle>
-                    </div>
-
-                    {/* Timer big display */}
-                    <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-                      <div className="text-right">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Tempo Restante
-                        </div>
-                        <div
-                          className={`text-2xl font-black font-mono leading-none ${
-                            simTimer <= 10 ? 'text-rose-500 animate-pulse' : 'text-amber-400'
-                          }`}
-                        >
-                          {Math.floor(simTimer / 60)}:{(simTimer % 60).toString().padStart(2, '0')}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          onClick={() => setSimRunning(!simRunning)}
-                          className={`h-9 w-9 p-0 font-bold ${
-                            simRunning
-                              ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          }`}
-                        >
-                          {simRunning ? (
-                            <Pause className="w-4 h-4" />
-                          ) : (
-                            <Play className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSimRunning(false)
-                            setSimTimer(simTotalTime)
-                          }}
-                          className="h-9 w-9 p-0 text-slate-400 hover:text-white"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="p-5 sm:p-6 space-y-5">
-                    {/* Teleprompter Question */}
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
-                        Pergunta / Disparo:
-                      </span>
-                      <p className="text-base sm:text-lg font-bold text-white leading-relaxed">
-                        "{simSelectedQA.question}"
-                      </p>
-                    </div>
-
-                    {/* Prepared Answer in Large Teleprompter Format */}
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 border border-emerald-500/30 shadow-inner space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
-                        <span className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-4 h-4" /> Resposta & Roteiro do Candidato
-                          (Teleprompter)
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          Falar com firmeza e contato visual
-                        </span>
-                      </div>
-                      <p className="text-sm sm:text-base text-slate-100 leading-relaxed font-medium whitespace-pre-wrap">
-                        {simSelectedQA.prepared_answer ||
-                          'Nenhuma resposta formulada para esta pergunta.'}
-                      </p>
-                    </div>
-
-                    {/* Counter attack & Data points */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {simSelectedQA.counter_attack && (
-                        <div className="p-3.5 rounded-xl bg-slate-950 border border-rose-500/20 text-xs space-y-1">
-                          <span className="font-bold text-rose-400 flex items-center gap-1">
-                            <Swords className="w-3.5 h-3.5" /> Réplica / Contra-ataque
-                          </span>
-                          <p className="text-slate-300 leading-relaxed">
-                            {simSelectedQA.counter_attack}
-                          </p>
-                        </div>
-                      )}
-
-                      {simSelectedQA.key_data_points && (
-                        <div className="p-3.5 rounded-xl bg-slate-950 border border-amber-500/20 text-xs space-y-1">
-                          <span className="font-bold text-amber-400 flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" /> Dados para Citar
-                          </span>
-                          <p className="text-slate-300 leading-relaxed">
-                            {simSelectedQA.key_data_points}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Mark Rehearsed Button */}
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-                      <Button
-                        onClick={() => handleQuickStatusChange(simSelectedQA, 'rehearsed')}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1.5" /> Marcar como Ensaiado & Pronto
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="p-12 text-center bg-slate-900/60 rounded-2xl border border-slate-800 text-slate-400">
-                  Selecione uma pergunta na coluna ao lado para iniciar o ensaio cronometrado.
-                </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
+
+      {/* DIALOG: Importar da Biblioteca de Temas */}
+      <Dialog open={libImportModalOpen} onOpenChange={setLibImportModalOpen}>
+        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold text-white flex items-center gap-2">
+              <Library className="w-5 h-5 text-amber-400" />
+              Importar Pergunta para a Preparação
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Vincule esta pergunta a um adversário ou evento específico da sua campanha.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedLibItem && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-amber-400">
+                  {selectedLibItem.title}
+                </span>
+                <p className="text-xs text-slate-200">"{selectedLibItem.question}"</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-300">
+                  Adversário Alvo / Oponente
+                </Label>
+                <Select value={importAdvId} onValueChange={setImportAdvId}>
+                  <SelectTrigger className="h-9 text-xs bg-slate-950 border-slate-800 text-slate-200">
+                    <SelectValue placeholder="Selecione o adversário (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                    <SelectItem value="">Geral / Sem oponente específico</SelectItem>
+                    {adversaries.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({a.party || 'Sem Partido'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-300">Debate Vinculado</Label>
+                <Select value={importEventId} onValueChange={setImportEventId}>
+                  <SelectTrigger className="h-9 text-xs bg-slate-950 border-slate-800 text-slate-200">
+                    <SelectValue placeholder="Selecione o debate (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                    <SelectItem value="">Geral / Sem debate específico</SelectItem>
+                    {events.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLibImportModalOpen(false)}
+              className="text-xs bg-slate-800 border-slate-700 text-slate-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmImportLib}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs"
+            >
+              Confirmar Importação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* DIALOG: Criar / Editar Pergunta e Resposta */}
       <Dialog open={qaModalOpen} onOpenChange={setQaModalOpen}>

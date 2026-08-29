@@ -22,6 +22,7 @@ import { CandidatesPage } from '@/pages/CandidatesPage'
 import { ContentCalendarPage } from '@/pages/ContentCalendarPage'
 import { CampaignTrackingPage } from '@/pages/CampaignTrackingPage'
 import { DebatePrepPage } from '@/pages/DebatePrepPage'
+import { PollsTrackingPage } from '@/pages/PollsTrackingPage'
 import { useUtmTracking } from '@/hooks/use-utm-tracking'
 import { useCampaign } from '@/hooks/use-campaign'
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/polls" element={<PollsTrackingPage />} />
               <Route path="/debate-prep" element={<DebatePrepPage />} />
               <Route path="/candidates" element={<CandidatesPage />} />
               <Route path="/content-calendar" element={<ContentCalendarPage />} />

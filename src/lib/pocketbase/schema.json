@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T03:24:40.846Z",
+  "generatedAt": "2026-08-29T03:42:59.979Z",
   "collections": [
     {
       "name": "users",
@@ -1454,6 +1454,283 @@
         "CREATE INDEX idx_debate_qa_status ON debate_qa (prep_status)",
         "CREATE INDEX idx_debate_qa_adv ON debate_qa (adversary_id)",
         "CREATE INDEX idx_debate_qa_debate ON debate_qa (debate_id)"
+      ]
+    },
+    {
+      "name": "polls",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "institute",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "poll_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "scenario",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["estimulada_1t", "espontanea_1t", "segundo_turno", "rejeicao"]
+        },
+        {
+          "name": "our_candidate_percentage",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adversaries_results",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "margin_of_error",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_size",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "candidate_rank",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tse_registration",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "analysis_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_polls_camp ON polls (campaign_id)",
+        "CREATE INDEX idx_polls_date ON polls (poll_date)",
+        "CREATE INDEX idx_polls_scenario ON polls (scenario)"
+      ]
+    },
+    {
+      "name": "debate_qa_library",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "topic",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "economia",
+            "saude",
+            "seguranca",
+            "educacao",
+            "transporte",
+            "habitacao",
+            "meio_ambiente",
+            "corrupcao",
+            "zeladoria",
+            "social",
+            "administracao",
+            "geral"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "suggested_answer",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "suggested_counter_attack",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "key_data_points",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "difficulty",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["facil", "medio", "dificil", "casca_de_banana"]
+        },
+        {
+          "name": "time_limit_seconds",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_debate_lib_topic ON debate_qa_library (topic)"]
+    },
+    {
+      "name": "debate_rehearsals",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "overall_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "questions_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_duration_seconds",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "time_discipline_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_usage_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rehearsal_details",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_debate_reh_camp ON debate_rehearsals (campaign_id)",
+        "CREATE INDEX idx_debate_reh_score ON debate_rehearsals (overall_score)"
       ]
     }
   ]
