@@ -29,6 +29,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
 import { useGpsTracker } from '@/hooks/use-gps-tracker'
 import { notificationsService } from '@/services/notifications'
+import { webPushService, type PushPermissionState } from '@/services/webPush'
 import type { AppNotification } from '@/types/campaign'
 import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
@@ -54,10 +55,22 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
-  // In-app notifications state
+  // In-app notifications state & Push state
   const [notifications, setNotifications] = React.useState<AppNotification[]>([])
   const [unreadCount, setUnreadCount] = React.useState(0)
   const [loadingNotifs, setLoadingNotifs] = React.useState(false)
+  const [pushState, setPushState] = React.useState<PushPermissionState>(() =>
+    webPushService.getPermissionState(),
+  )
+
+  React.useEffect(() => {
+    webPushService.registerServiceWorker().catch(() => {})
+  }, [])
+
+  const handleRequestPushFromDropdown = async () => {
+    const res = await webPushService.subscribeUser(currentCampaign?.id)
+    setPushState(webPushService.getPermissionState())
+  }
 
   const loadNotifications = React.useCallback(async () => {
     if (!currentCampaign) return
@@ -149,8 +162,15 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       title: '01 APOIADORES',
       subtitle: 'Cadastro, indicação e relacionamento',
       items: [
-        { to: '/dashboard', label: 'Captação & Métricas', icon: LayoutDashboard, badge: 'Aba 07' },
-        { to: '/polls', label: 'Pesquisas Eleitorais', icon: BarChart3, badge: 'Datafolha' },
+        { to: '/dashboard', label: 'Captação & Métricas', icon: LayoutDashboard, badge: 'Geral' },
+        {
+          to: '/campaigns-compare',
+          label: 'Comparar Campanhas',
+          icon: BarChart3,
+          badge: 'Multi',
+          roles: ['admin', 'coordinator'],
+        },
+        { to: '/polls', label: 'Pesquisas Eleitorais', icon: TrendingUp, badge: 'Datafolha' },
         { to: '/debate-prep', label: 'Preparação de Debate', icon: Swords, badge: 'Q&A' },
         { to: '/candidates', label: 'Candidaturas SP (TSE)', icon: Users, badge: 'TSE' },
         { to: '/support-points', label: 'Comitês & Apoio', icon: Building2, badge: 'Aba 05' },
@@ -351,17 +371,34 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                     </Badge>
                   )}
                 </div>
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllAsRead}
-                    disabled={loadingNotifs}
-                    className="text-[11px] text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
-                  >
-                    <CheckCheck className="w-3.5 h-3.5" />
-                    Marcar lidas
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      disabled={loadingNotifs}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      Marcar lidas
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Web Push Prompt Banner in Dropdown if not granted */}
+              {pushState === 'default' && (
+                <div className="px-3 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2">
+                  <div className="text-[10px] text-amber-300 font-medium">
+                    Ativar alertas no celular para viradas de pesquisa
+                  </div>
+                  <button
+                    onClick={handleRequestPushFromDropdown}
+                    className="text-[10px] bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded shadow-xs shrink-0"
+                  >
+                    Ativar Push
+                  </button>
+                </div>
+              )}
 
               <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
                 {notifications.length === 0 ? (

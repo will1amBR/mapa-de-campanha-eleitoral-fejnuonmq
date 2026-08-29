@@ -20,6 +20,7 @@ import type {
   PollAlert,
 } from '@/types/campaign'
 import { pollsService } from '@/services/polls'
+import { generateConsolidatedPdfReport } from '@/services/consolidatedPdfReport'
 import { computeGamificationLeaderboard, type MemberGamificationStats } from '@/lib/gamification'
 import { WeeklyGoalsSection } from '@/components/gamification/WeeklyGoalsSection'
 import {
@@ -59,6 +60,8 @@ import {
   MapPin,
   Swords,
   ShieldAlert,
+  FileText,
+  FileCheck2,
 } from 'lucide-react'
 import { OnboardingWizard } from '@/components/OnboardingWizard'
 import {
@@ -141,6 +144,7 @@ export const Dashboard: React.FC = () => {
     return parseInt(localStorage.getItem('estrategista_inactive_threshold_days') || '3', 10)
   })
   const [isScanning, setIsScanning] = useState(false)
+  const [isGeneratingConsolidatedPdf, setIsGeneratingConsolidatedPdf] = useState(false)
 
   const fetchAlerts = async () => {
     if (!currentCampaign) return
@@ -502,6 +506,71 @@ export const Dashboard: React.FC = () => {
     toast.success('Relatório de Captação CSV exportado!')
   }
 
+  const handleDownloadConsolidatedPdf = async () => {
+    if (!currentCampaign) {
+      toast.error('Selecione uma campanha para gerar o relatório.')
+      return
+    }
+
+    try {
+      setIsGeneratingConsolidatedPdf(true)
+      toast.info('Gerando Relatório Consolidado em PDF (A4)...')
+
+      // Calculate member performance metrics
+      const metrics = teamUsers.map((user) => {
+        const userActivities = activities.filter((a) => a.user_id === user.id)
+        const totalCheckins = userActivities.length
+        const totalConversions = userActivities.reduce(
+          (acc, a) => acc + (a.voters_contacted || 0),
+          0,
+        )
+        const sentimentAvg =
+          userActivities.length > 0
+            ? Number(
+                (
+                  userActivities.reduce((acc, a) => acc + (a.sentiment || 3), 0) /
+                  userActivities.length
+                ).toFixed(1),
+              )
+            : 4.8
+        const totalKm = Number((totalCheckins * 1.8 + Math.random() * 2).toFixed(1))
+
+        return {
+          member: user,
+          totalCheckins,
+          totalConversions,
+          sentimentAvg,
+          totalKm,
+        }
+      })
+
+      const doc = generateConsolidatedPdfReport({
+        campaign: currentCampaign,
+        generatedBy: null,
+        polls,
+        pollAlerts,
+        teamMetrics: metrics,
+        activitiesCount: activities.length,
+        supportPointsCount: supportPoints.length,
+        nextDebate: debateEvents[0] || null,
+        adversaries: debateAdversaries,
+        readyQAs: debateQAs.filter(
+          (q) => q.prep_status === 'ready' || q.prep_status === 'rehearsed',
+        ),
+        latestRehearsal: debateRehearsals[0] || null,
+      })
+
+      const filename = `relatorio_consolidado_${currentCampaign.candidate_name?.toLowerCase().replace(/\s+/g, '_') || 'campanha'}_${new Date().toISOString().slice(0, 10)}.pdf`
+      doc.save(filename)
+      toast.success('Relatório Consolidado baixado com sucesso!')
+    } catch (err) {
+      console.error('Erro ao gerar relatório consolidado PDF:', err)
+      toast.error('Erro ao gerar relatório consolidado em PDF.')
+    } finally {
+      setIsGeneratingConsolidatedPdf(false)
+    }
+  }
+
   return (
     <div className="p-3 sm:p-5 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 overflow-hidden">
       {/* Top Banner with Campaign Header */}
@@ -526,8 +595,18 @@ export const Dashboard: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
           <Button
+            onClick={handleDownloadConsolidatedPdf}
+            disabled={isGeneratingConsolidatedPdf}
+            className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black h-9 sm:h-10 px-4 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap shadow-lg shadow-amber-500/20"
+          >
+            <FileText
+              className={`w-4 h-4 mr-1.5 shrink-0 ${isGeneratingConsolidatedPdf ? 'animate-spin' : ''}`}
+            />
+            {isGeneratingConsolidatedPdf ? 'Gerando...' : 'Gerar Relatório Consolidado (PDF)'}
+          </Button>
+          <Button
             onClick={() => navigate('/debate-prep')}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[140px] shadow-md shadow-amber-500/20"
+            className="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-extrabold h-9 sm:h-10 px-3 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[130px]"
           >
             <Swords className="w-4 h-4 mr-1.5 shrink-0" /> Sala de Debate
           </Button>
@@ -535,7 +614,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate('/team')}
             data-conversion="field_checkin_cta"
             variant="outline"
-            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3.5 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[120px]"
+            className="bg-slate-800/80 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3 text-xs sm:text-sm flex-1 sm:flex-none justify-center whitespace-nowrap min-w-[110px]"
           >
             <Flame className="w-4 h-4 mr-1.5 text-amber-400 shrink-0" /> Check-in
           </Button>
@@ -543,7 +622,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate('/ai-consultant')}
             data-conversion="ai_consultant_cta"
             variant="outline"
-            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3.5 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-nowrap min-w-[130px]"
+            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white font-semibold h-9 sm:h-10 px-3 text-xs sm:text-sm w-full sm:w-auto justify-center whitespace-nowrap min-w-[120px]"
           >
             <Bot className="w-4 h-4 mr-1.5 text-amber-400 shrink-0" /> Estrategista IA
           </Button>

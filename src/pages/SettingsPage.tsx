@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
+import { webPushService, type PushPermissionState } from '@/services/webPush'
 import {
   Settings,
   User,
@@ -13,6 +14,11 @@ import {
   CheckCircle2,
   Lock,
   Compass,
+  Bell,
+  Smartphone,
+  Check,
+  AlertCircle,
+  Send,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,6 +45,13 @@ export const SettingsPage: React.FC = () => {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
 
+  // Web Push Notifications
+  const [pushState, setPushState] = useState<PushPermissionState>(() =>
+    webPushService.getPermissionState(),
+  )
+  const [isSubscribingPush, setIsSubscribingPush] = useState(false)
+  const [isTestingPush, setIsTestingPush] = useState(false)
+
   // New campaign modal
   const [campaignModalOpen, setCampaignModalOpen] = useState(false)
   const [campName, setCampName] = useState('')
@@ -48,6 +61,55 @@ export const SettingsPage: React.FC = () => {
   const [targetVotes, setTargetVotes] = useState(300000)
   const [color, setColor] = useState('#F59E0B')
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false)
+
+  const handleTogglePush = async () => {
+    if (!webPushService.isSupported()) {
+      toast.error('Este navegador ou dispositivo não oferece suporte a Web Push.')
+      return
+    }
+
+    try {
+      setIsSubscribingPush(true)
+      if (pushState === 'granted') {
+        await webPushService.unsubscribeUser()
+        setPushState('default')
+        toast.info('Notificações no celular desativadas.')
+      } else {
+        const res = await webPushService.subscribeUser(currentCampaign?.id)
+        if (res.success) {
+          setPushState('granted')
+          toast.success('Notificações push ativadas com sucesso!')
+        } else {
+          setPushState(webPushService.getPermissionState())
+          toast.error(res.error || 'Não foi possível ativar notificações.')
+        }
+      }
+    } finally {
+      setIsSubscribingPush(false)
+    }
+  }
+
+  const handleTestPush = async () => {
+    try {
+      setIsTestingPush(true)
+      const res = await webPushService.dispatchPushNotification({
+        campaign_id: currentCampaign?.id,
+        title: '🔔 Teste de Notificação • Estrategista',
+        body: 'Alerta push funcionando em tempo real para o coordenador!',
+        url: '/dashboard',
+        tag: 'test-push-' + Date.now(),
+      })
+      if (res.success) {
+        toast.success('Disparo de teste executado com sucesso!')
+      } else {
+        toast.warning('Disparo testado localmente no dispositivo.')
+      }
+    } catch {
+      toast.error('Erro ao enviar push de teste.')
+    } finally {
+      setIsTestingPush(false)
+    }
+  }
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,6 +186,103 @@ export const SettingsPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Web Push Configuration Card */}
+      <Card className="border-amber-500/40 shadow-md bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 text-white">
+        <CardHeader className="border-b border-slate-800 pb-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                  Notificações Web Push no Celular
+                  <Badge
+                    className={`text-[10px] font-black ${
+                      pushState === 'granted'
+                        ? 'bg-emerald-500 text-slate-950'
+                        : pushState === 'denied'
+                          ? 'bg-rose-500 text-white'
+                          : pushState === 'unsupported'
+                            ? 'bg-slate-700 text-slate-300'
+                            : 'bg-amber-500 text-slate-950'
+                    }`}
+                  >
+                    {pushState === 'granted'
+                      ? '● ATIVO'
+                      : pushState === 'denied'
+                        ? '✖ BLOQUEADO'
+                        : pushState === 'unsupported'
+                          ? 'NÃO SUPORTADO'
+                          : 'INATIVO'}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Receba alertas críticos de virada e oscilações bruscas mesmo com o app fechado
+                </CardDescription>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {pushState === 'granted' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleTestPush}
+                  disabled={isTestingPush}
+                  className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white text-xs h-8"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                  {isTestingPush ? 'Enviando...' : 'Testar Push'}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={handleTogglePush}
+                disabled={isSubscribingPush || pushState === 'unsupported'}
+                className={`text-xs h-8 font-bold ${
+                  pushState === 'granted'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20'
+                }`}
+              >
+                <Bell className="w-3.5 h-3.5 mr-1" />
+                {isSubscribingPush
+                  ? 'Processando...'
+                  : pushState === 'granted'
+                    ? 'Desativar Push no Celular'
+                    : 'Ativar Notificações no Celular'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 text-xs space-y-3">
+          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-300 flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-white">
+                Como funciona o alerta de virada via Web Push:
+              </span>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Quando novos levantamentos de pesquisa forem registrados e o sistema detectar perda
+                de liderança ou queda de 3 p.p.+, o celular do coordenador receberá uma notificação
+                vibratória com acesso direto ao dossiê tático.
+              </p>
+            </div>
+          </div>
+
+          {pushState === 'denied' && (
+            <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>
+                As notificações foram bloqueadas no navegador. Para reativar, clique no cadeado ao
+                lado do endereço e permita "Notificações".
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Profile Card */}

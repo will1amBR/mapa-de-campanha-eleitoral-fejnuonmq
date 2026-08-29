@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import { notificationsService } from './notifications'
+import { webPushService } from './webPush'
 import type {
   Poll,
   PollScenario,
@@ -202,6 +203,19 @@ export const pollsService = {
             } catch (notifErr) {
               console.warn('Failed to dispatch notification for lost_lead:', notifErr)
             }
+
+            // Web Push notification for mobile coordinator (instant turnaround alert)
+            try {
+              await webPushService.dispatchPushNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                url: '/polls',
+                tag: 'lost_lead_' + curr.id,
+              })
+            } catch (pushErr) {
+              console.warn('Failed to dispatch push notification for lost_lead:', pushErr)
+            }
           }
         }
 
@@ -244,6 +258,19 @@ export const pollsService = {
             } catch (notifErr) {
               console.warn('Failed to dispatch notification for gain_lead:', notifErr)
             }
+
+            // Web Push notification for lead gain
+            try {
+              await webPushService.dispatchPushNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                url: '/polls',
+                tag: 'gain_lead_' + curr.id,
+              })
+            } catch (pushErr) {
+              console.warn('Failed to dispatch push notification for gain_lead:', pushErr)
+            }
           }
         }
 
@@ -285,6 +312,19 @@ export const pollsService = {
               })
             } catch (notifErr) {
               console.warn('Failed to dispatch notification for drop_significant:', notifErr)
+            }
+
+            // Web Push notification for drop >= 3 p.p.
+            try {
+              await webPushService.dispatchPushNotification({
+                campaign_id: campaignId,
+                title: alertTitle,
+                body: alertSummary,
+                url: '/polls',
+                tag: 'drop_significant_' + curr.id,
+              })
+            } catch (pushErr) {
+              console.warn('Failed to dispatch push notification for drop_significant:', pushErr)
             }
           }
         }
