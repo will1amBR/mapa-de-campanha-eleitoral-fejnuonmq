@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31T15:32:51.650Z",
+  "generatedAt": "2026-08-31T15:55:52.527Z",
   "collections": [
     {
       "name": "users",
@@ -2132,6 +2132,247 @@
         "CREATE INDEX idx_field_reminders_camp ON field_reminders (campaign_id)",
         "CREATE INDEX idx_field_reminders_status ON field_reminders (status)",
         "CREATE INDEX idx_field_reminders_event_date ON field_reminders (event_date)"
+      ]
+    },
+    {
+      "name": "tse_transactions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\"",
+        "view": "@request.auth.id != \"\"",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\"",
+        "delete": "@request.auth.id != \"\""
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["receita", "despesa"]
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "doacao_pf",
+            "recurso_proprio",
+            "fundo_partidario",
+            "fundo_especial",
+            "outras_receitas",
+            "material_grafico",
+            "impulsionamento_ads",
+            "transporte_combustivel",
+            "alimentacao",
+            "servicos_advocaticios",
+            "servicos_contabeis",
+            "producao_audiovisual",
+            "locacao_imovel",
+            "comicio_eventos",
+            "diversas_despesas"
+          ]
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "transaction_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "document_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "document_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "nota_fiscal",
+            "recibo_eleitoral",
+            "contrato",
+            "boleto",
+            "comprovante_pix",
+            "outro"
+          ]
+        },
+        {
+          "name": "party_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "party_document",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "proof_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["comprovado", "pendente_doc", "em_analise", "divergente"]
+        },
+        {
+          "name": "receipt_file",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_tse_trans_camp ON tse_transactions (campaign_id)",
+        "CREATE INDEX idx_tse_trans_type ON tse_transactions (type)",
+        "CREATE INDEX idx_tse_trans_status ON tse_transactions (proof_status)",
+        "CREATE INDEX idx_tse_trans_date ON tse_transactions (transaction_date)"
+      ]
+    },
+    {
+      "name": "tse_deliveries",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\"",
+        "view": "@request.auth.id != \"\"",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\"",
+        "delete": "@request.auth.id != \"\""
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "legal_deadline",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "delivery_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "parcial",
+            "relatorio_72h",
+            "prestacao_final",
+            "abertura_conta",
+            "extrato_bancario",
+            "outro"
+          ]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pendente", "em_andamento", "concluido", "em_atraso"]
+        },
+        {
+          "name": "delivered_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "protocol_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mandatory",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_tse_deliv_camp ON tse_deliveries (campaign_id)",
+        "CREATE INDEX idx_tse_deliv_status ON tse_deliveries (status)",
+        "CREATE INDEX idx_tse_deliv_deadline ON tse_deliveries (legal_deadline)"
       ]
     }
   ]

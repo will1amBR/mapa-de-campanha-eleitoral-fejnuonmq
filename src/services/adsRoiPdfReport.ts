@@ -15,10 +15,22 @@ export interface PlatformRoiItem {
   costPerVoter: number
 }
 
+export interface MonthlyRoiItem {
+  monthKey: string
+  monthLabel: string
+  investimento: number
+  conversoesAds: number
+  eleitoresCampo: number
+  totalVotos: number
+  custoPorVoto: number
+  cpcMedio: number
+}
+
 export interface AdsRoiReportData {
   campaign: Campaign
   generatedBy?: UserRecord | null
   periodLabel: string
+  dateRangeStr?: string
   totalBudget: number
   totalSpent: number
   totalImpressions: number
@@ -31,6 +43,7 @@ export interface AdsRoiReportData {
   overallCostPerVote: number
   estimatedRoiMultiplier: number
   platformBreakdown: PlatformRoiItem[]
+  monthlyComparison: MonthlyRoiItem[]
   adCampaigns: AdCampaign[]
   recentFieldActivitiesCount: number
 }
@@ -40,6 +53,7 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
     campaign,
     generatedBy,
     periodLabel,
+    dateRangeStr,
     totalBudget,
     totalSpent,
     totalImpressions,
@@ -52,6 +66,7 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
     overallCostPerVote,
     estimatedRoiMultiplier,
     platformBreakdown,
+    monthlyComparison,
     adCampaigns,
   } = data
 
@@ -77,8 +92,8 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
 
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(255, 255, 255)
-    doc.setFontSize(13)
-    doc.text('ESTRATEGISTA ELEITORAL • RELATÓRIO DE ROI DE ADS & CUSTO POR VOTO', margin, 11)
+    doc.setFontSize(12)
+    doc.text('ESTRATEGISTA ELEITORAL • RELATÓRIO DE ROI & EVOLUÇÃO MENSAL', margin, 11)
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8.5)
@@ -97,21 +112,26 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
       minute: '2-digit',
     })
     const byUser = generatedBy?.name ? ` por ${generatedBy.name}` : ''
-    doc.text(`${subtitle} • Período: ${periodLabel} • Gerado em ${genDate}${byUser}`, margin, 23)
+    const filterInfo = dateRangeStr ? ` (${dateRangeStr})` : ''
+    doc.text(
+      `${subtitle} • Período: ${periodLabel}${filterInfo} • Gerado em ${genDate}${byUser}`,
+      margin,
+      23,
+    )
   }
 
   // =============================================================
   // PÁGINA 1: SUMÁRIO EXECUTIVO & CRUZAMENTO ROI
   // =============================================================
   drawPageHeader('Análise de Eficiência de Tráfego Pago cruzada com Atividades de Campo')
-  y = 36
+  y = 35
 
   // 1. CARDS DE KPIS EXECUTIVOS
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10.5)
+  doc.setFontSize(10)
   doc.setTextColor(11, 18, 32)
   doc.text('1. INDICADORES CONSOLIDADOS DE INVESTIMENTO & RETORNO', margin, y)
-  y += 4.5
+  y += 4
 
   const formatCurrency = (v: number) =>
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -126,12 +146,12 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
       fontStyle: 'bold',
       fontSize: 7.5,
     },
-    bodyStyles: { fontSize: 8, textColor: [15, 23, 42], cellPadding: 2.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [15, 23, 42], cellPadding: 2.2 },
     columns: [
       { header: 'Investimento Total (ADS)', dataKey: 'spent' },
       { header: 'Conversões Digitais', dataKey: 'adConv' },
-      { header: 'Eleitores de Campo (Check-in)', dataKey: 'fieldConv' },
-      { header: 'Custo Médio por Conversão', dataKey: 'cpcConv' },
+      { header: 'Eleitores de Campo', dataKey: 'fieldConv' },
+      { header: 'Custo / Conversão', dataKey: 'cpcConv' },
       { header: 'Custo por Voto/Eleitor', dataKey: 'cpv' },
       { header: 'Eficiência Estimada', dataKey: 'roi' },
     ],
@@ -142,60 +162,116 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
         fieldConv: `${totalFieldConversions.toLocaleString('pt-BR')} contatos`,
         cpcConv: formatCurrency(overallCostPerConversion),
         cpv: formatCurrency(overallCostPerVote),
-        roi: `${estimatedRoiMultiplier.toFixed(1)}x votos/R$`,
+        roi: `${estimatedRoiMultiplier.toFixed(1)} votos/R$ 100`,
       },
     ],
   })
 
-  // @ts-expect-error
-  y = doc.lastAutoTable.finalY + 5
+  // @ts-expect-error autoTable finalY
+  y = doc.lastAutoTable.finalY + 4
 
   // Box de Diagnóstico Estratégico
   doc.setFillColor(248, 250, 252)
-  doc.roundedRect(margin, y, pageWidth - margin * 2, 16, 1.5, 1.5, 'F')
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 14, 1.5, 1.5, 'F')
   doc.setDrawColor(226, 232, 240)
-  doc.roundedRect(margin, y, pageWidth - margin * 2, 16, 1.5, 1.5, 'S')
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 14, 1.5, 1.5, 'S')
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(15, 23, 42)
-  doc.text('DIAGNÓSTICO DO CUSTO POR VOTO (ADS + CAMPO):', margin + 3, y + 4.5)
+  doc.text('DIAGNÓSTICO ESTRATÉGICO DO CUSTO POR VOTO (ADS + CAMPO):', margin + 3, y + 4.5)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(51, 65, 85)
   const isHealthyCpv = overallCostPerVote > 0 && overallCostPerVote <= 15
   const cpvDiagnosis = isHealthyCpv
-    ? `Custo por Voto excelente (${formatCurrency(overallCostPerVote)}), dentro da faixa ideal de campanhas competitivas (< R$ 15,00/voto).`
+    ? `Custo por Voto de ${formatCurrency(overallCostPerVote)} é altamente competitivo (benchmark eleitoral < R$ 15,00/voto).`
     : overallCostPerVote === 0
-      ? 'Aguardando maior volume de check-ins de campo para refinar a métrica de custo por voto.'
-      : `Custo por Voto de ${formatCurrency(overallCostPerVote)} indica necessidade de otimizar criativos e segmentação zonal.`
-  doc.text(`• ${cpvDiagnosis}`, margin + 3, y + 9)
+      ? 'Aguardando maior volume de dados para refinar a métrica de custo por voto.'
+      : `Custo por Voto de ${formatCurrency(overallCostPerVote)} sugere otimizar anúncios e aumentar conversões de rua.`
+  doc.text(`• ${cpvDiagnosis}`, margin + 3, y + 8.5)
   doc.text(
-    `• O cruzamento integra o tráfego pago (Meta/Google/TikTok) com os contatos diretos de militância e fichas de apoio.`,
+    `• Dados filtrados por período (${periodLabel}) cruzando anúncios pagos com mobilização presencial.`,
     margin + 3,
-    y + 13,
+    y + 12,
   )
 
-  y += 21
+  y += 18
 
-  // 2. DESEMPENHO COMPARATIVO POR PLATAFORMA (META VS GOOGLE VS TIKTOK)
+  // 2. EVOLUÇÃO MÊS A MÊS (NOVA SEÇÃO)
+  if (monthlyComparison && monthlyComparison.length > 0) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(11, 18, 32)
+    doc.text('2. EVOLUÇÃO E COMPARAÇÃO MÊS A MÊS (CUSTO POR VOTO AO LONGO DO TEMPO)', margin, y)
+    y += 4
+
+    const monthlyRows = monthlyComparison.map((m) => [
+      m.monthLabel,
+      formatCurrency(m.investimento),
+      m.conversoesAds.toLocaleString('pt-BR'),
+      m.eleitoresCampo.toLocaleString('pt-BR'),
+      m.totalVotos.toLocaleString('pt-BR'),
+      formatCurrency(m.cpcMedio),
+      formatCurrency(m.custoPorVoto),
+    ])
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      theme: 'grid',
+      headStyles: {
+        fillColor: [245, 158, 11],
+        textColor: [15, 23, 42],
+        fontStyle: 'bold',
+        fontSize: 7.5,
+      },
+      bodyStyles: { fontSize: 7, textColor: [15, 23, 42], cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 32, fontStyle: 'bold' },
+        1: { cellWidth: 26 },
+        2: { cellWidth: 24 },
+        3: { cellWidth: 24 },
+        4: { cellWidth: 24, fontStyle: 'bold' },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 28, fontStyle: 'bold', textColor: [180, 83, 9] },
+      },
+      head: [
+        [
+          'Mês / Ano',
+          'Investimento ADS',
+          'Leads Digitais',
+          'Ações Campo',
+          'Total Eleitores',
+          'Custo / Lead',
+          'Custo / Voto',
+        ],
+      ],
+      body: monthlyRows,
+    })
+
+    // @ts-expect-error autoTable finalY
+    y = doc.lastAutoTable.finalY + 6
+  }
+
+  // 3. COMPARATIVO POR PLATAFORMA (META VS GOOGLE VS TIKTOK)
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10.5)
+  doc.setFontSize(10)
   doc.setTextColor(11, 18, 32)
-  doc.text('2. COMPARATIVO DE ROI & CUSTO POR VOTO POR PLATAFORMA', margin, y)
-  y += 4.5
+  doc.text('3. COMPARATIVO DE ROI POR PLATAFORMA DE ANÚNCIOS', margin, y)
+  y += 4
 
   const platformRows = platformBreakdown.map((p) => {
     return [
       p.platformName,
-      `${p.campaignsCount} campanhas`,
+      `${p.campaignsCount} ads`,
       formatCurrency(p.spent),
       p.impressions.toLocaleString('pt-BR'),
       p.clicks.toLocaleString('pt-BR'),
       p.conversions.toLocaleString('pt-BR'),
       formatCurrency(p.costPerConversion),
-      `${p.estimatedVoters.toLocaleString('pt-BR')} eleitores`,
+      `${p.estimatedVoters.toLocaleString('pt-BR')}`,
       formatCurrency(p.costPerVoter),
     ]
   })
@@ -210,17 +286,17 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
       fontStyle: 'bold',
       fontSize: 7.5,
     },
-    bodyStyles: { fontSize: 7, textColor: [15, 23, 42], cellPadding: 2 },
+    bodyStyles: { fontSize: 7, textColor: [15, 23, 42], cellPadding: 1.8 },
     columnStyles: {
       0: { cellWidth: 28, fontStyle: 'bold' },
-      1: { cellWidth: 20 },
+      1: { cellWidth: 18 },
       2: { cellWidth: 22 },
       3: { cellWidth: 20 },
       4: { cellWidth: 16 },
       5: { cellWidth: 16 },
       6: { cellWidth: 20 },
       7: { cellWidth: 20 },
-      8: { cellWidth: 20, fontStyle: 'bold' },
+      8: { cellWidth: 22, fontStyle: 'bold' },
     },
     head: [
       [
@@ -239,7 +315,7 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
     foot: [
       [
         'TOTAL GERAL',
-        `${adCampaigns.length} ativas`,
+        `${adCampaigns.length} ads`,
         formatCurrency(totalSpent),
         totalImpressions.toLocaleString('pt-BR'),
         totalClicks.toLocaleString('pt-BR'),
@@ -257,23 +333,25 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
     },
   })
 
-  // @ts-expect-error
+  // @ts-expect-error autoTable finalY
   y = doc.lastAutoTable.finalY + 6
 
-  // 3. DETALHAMENTO DE CAMPANHAS DE ANÚNCIO
+  // 4. DETALHAMENTO DE CAMPANHAS DE ANÚNCIO (SE COUBER OU NOVA PÁGINA)
+  if (y > 230) {
+    doc.addPage()
+    drawPageHeader('Listagem Individual de Campanhas de Tráfego Pago')
+    y = 35
+  }
+
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10.5)
+  doc.setFontSize(10)
   doc.setTextColor(11, 18, 32)
-  doc.text('3. LISTAGEM INDIVIDUAL DE CAMPANHAS DE TRÁFEGO PAGO', margin, y)
-  y += 4.5
+  doc.text('4. LISTAGEM INDIVIDUAL DE CAMPANHAS DE ADS ATIVAS NO PERÍODO', margin, y)
+  y += 4
 
   const adRows = adCampaigns.map((ad, idx) => {
     const platLabel =
-      ad.platform === 'meta_ads'
-        ? 'Meta (Insta/FB)'
-        : ad.platform === 'google_ads'
-          ? 'Google Search/YT'
-          : 'TikTok Ads'
+      ad.platform === 'meta_ads' ? 'Meta' : ad.platform === 'google_ads' ? 'Google' : 'TikTok'
     const statusLabel =
       ad.status === 'active' ? 'Ativa' : ad.status === 'paused' ? 'Pausada' : 'Encerrada'
     const ctrStr = `${ad.ctr || 0}%`
@@ -304,18 +382,18 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
       fontStyle: 'bold',
       fontSize: 7,
     },
-    bodyStyles: { fontSize: 6.5, textColor: [15, 23, 42], cellPadding: 1.8 },
+    bodyStyles: { fontSize: 6.5, textColor: [15, 23, 42], cellPadding: 1.6 },
     columnStyles: {
       0: { cellWidth: 42, fontStyle: 'bold' },
-      1: { cellWidth: 22 },
-      2: { cellWidth: 14 },
+      1: { cellWidth: 18 },
+      2: { cellWidth: 16 },
       3: { cellWidth: 16 },
       4: { cellWidth: 16 },
       5: { cellWidth: 14 },
       6: { cellWidth: 12 },
       7: { cellWidth: 14 },
       8: { cellWidth: 14 },
-      9: { cellWidth: 18 },
+      9: { cellWidth: 20 },
     },
     head: [
       [
@@ -336,7 +414,7 @@ export const generateAdsRoiPdfReport = (data: AdsRoiReportData): jsPDF => {
         ? adRows
         : [
             [
-              'Campanha Geral de Reconhecimento',
+              'Campanha de Mobilização',
               'Meta Ads',
               'Ativa',
               'R$ 5.000,00',

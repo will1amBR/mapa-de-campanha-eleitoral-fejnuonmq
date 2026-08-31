@@ -26,6 +26,8 @@ import {
   Check,
   BellRing,
   DollarSign,
+  Receipt,
+  Scale,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
@@ -175,6 +177,12 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
         { to: '/polls', label: 'Pesquisas Eleitorais', icon: TrendingUp, badge: 'Datafolha' },
         { to: '/debate-prep', label: 'Preparação de Debate', icon: Swords, badge: 'Q&A' },
         { to: '/candidates', label: 'Candidaturas SP (TSE)', icon: Users, badge: 'TSE' },
+        {
+          to: '/accounting',
+          label: 'Prestação de Contas (TRE)',
+          icon: Scale,
+          badge: 'Notas/SPCE',
+        },
         { to: '/support-points', label: 'Comitês & Apoio', icon: Building2, badge: 'Aba 05' },
       ],
     },

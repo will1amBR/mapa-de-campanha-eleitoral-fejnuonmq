@@ -8,6 +8,17 @@ declare global {
   }
 }
 
+export interface AdLeadPoint {
+  id: string
+  campaign_id?: string
+  lat: number
+  lng: number
+  source: string // instagram, facebook, google, tiktok
+  campaign_name?: string
+  conversion_type?: string
+  created?: string
+}
+
 interface MapViewProps {
   center?: [number, number]
   zoom?: number
@@ -15,10 +26,12 @@ interface MapViewProps {
   supportPoints?: SupportPoint[]
   teamLocations?: TeamLocation[]
   territories?: TerritoryData[]
+  adLeads?: AdLeadPoint[]
   selectedMemberId?: string | null
   onSelectMember?: (memberId: string | null) => void
   showTeam?: boolean
   showHeatmap?: boolean
+  showAdLeadsHeatmap?: boolean
   showSupportPoints?: boolean
   showTerritoryBoundaries?: boolean
   interactive?: boolean
@@ -33,10 +46,12 @@ export const MapView: React.FC<MapViewProps> = ({
   supportPoints = [],
   teamLocations = [],
   territories = [],
+  adLeads = [],
   selectedMemberId,
   onSelectMember,
   showTeam = true,
   showHeatmap = true,
+  showAdLeadsHeatmap = true,
   showSupportPoints = true,
   showTerritoryBoundaries = true,
   height = '100%',
@@ -223,6 +238,74 @@ export const MapView: React.FC<MapViewProps> = ({
       })
     }
 
+    // 2.1 Ad Leads Density & Heatmap Layer (Cruzamento ADS + Equipe de Rua)
+    if (showAdLeadsHeatmap && adLeads.length > 0) {
+      adLeads.forEach((lead) => {
+        if (!lead.lat || !lead.lng) return
+
+        const sourceColor =
+          lead.source === 'instagram'
+            ? '#E1306C'
+            : lead.source === 'facebook'
+              ? '#1877F2'
+              : lead.source === 'google'
+                ? '#EA4335'
+                : lead.source === 'tiktok'
+                  ? '#00F2FE'
+                  : '#F59E0B'
+
+        // Outer glow (Density aura)
+        const densityAura = L.circleMarker([lead.lat, lead.lng], {
+          radius: 24,
+          fillColor: sourceColor,
+          fillOpacity: 0.22,
+          stroke: false,
+        })
+        layerGroup.addLayer(densityAura)
+
+        // Ad Pin
+        const adPin = L.circleMarker([lead.lat, lead.lng], {
+          radius: 8,
+          fillColor: '#0F172A',
+          fillOpacity: 1,
+          color: sourceColor,
+          weight: 3,
+        })
+
+        const sourceLabels: Record<string, string> = {
+          instagram: '📱 Meta Ads (Instagram)',
+          facebook: '💻 Meta Ads (Facebook)',
+          google: '🔍 Google Search/Ads',
+          tiktok: '🎵 TikTok Ads',
+          whatsapp: '💬 WhatsApp / Indicação',
+        }
+
+        adPin.bindPopup(`
+          <div style="font-family: Inter, sans-serif; min-width: 210px; padding: 2px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 10px; font-weight: 800; background: ${sourceColor}; color: #ffffff; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
+                LEAD ADS CAPTADO
+              </span>
+              <span style="font-size: 10px; font-weight: 700; color: #F59E0B;">
+                🎯 Direcionar Rua
+              </span>
+            </div>
+            <div style="font-size: 12px; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+              ${sourceLabels[lead.source] || lead.source}
+            </div>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px; font-size: 11px; margin-bottom: 6px;">
+              <div><strong>Campanha:</strong> ${lead.campaign_name || 'Campanha Geral de Alcance'}</div>
+              <div><strong>Tipo:</strong> ${lead.conversion_type || 'Cadastro de Apoiador'}</div>
+            </div>
+            <div style="font-size: 10px; color: #475569; line-height: 1.4;">
+              💡 <em>Alta densidade de leads de anúncio neste setor. Recomenda-se enviar equipe de campo para panfletagem presencial.</em>
+            </div>
+          </div>
+        `)
+        layerGroup.addLayer(adPin)
+      })
+    }
+
     // 3. Support Points (Comitês, Casas Estratégicas)
     if (showSupportPoints && supportPoints.length > 0) {
       supportPoints.forEach((sp) => {
@@ -386,9 +469,11 @@ export const MapView: React.FC<MapViewProps> = ({
     supportPoints,
     teamLocations,
     territories,
+    adLeads,
     selectedMemberId,
     showTeam,
     showHeatmap,
+    showAdLeadsHeatmap,
     showSupportPoints,
     showTerritoryBoundaries,
   ])

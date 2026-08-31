@@ -526,3 +526,84 @@ export interface FieldReminder {
     target_users?: UserRecord[]
   }
 }
+
+// 12. TSE / TRE Accounting & Invoices (Prestação de Contas Eleitoral)
+export type TseTransactionType = 'receita' | 'despesa'
+
+export type TseCategory =
+  | 'doacao_pf'
+  | 'recurso_proprio'
+  | 'fundo_partidario'
+  | 'fundo_especial'
+  | 'outras_receitas'
+  | 'material_grafico'
+  | 'impulsionamento_ads'
+  | 'transporte_combustivel'
+  | 'alimentacao'
+  | 'servicos_advocaticios'
+  | 'servicos_contabeis'
+  | 'producao_audiovisual'
+  | 'locacao_imovel'
+  | 'comicio_eventos'
+  | 'diversas_despesas'
+
+export type TseDocumentType =
+  | 'nota_fiscal'
+  | 'recibo_eleitoral'
+  | 'contrato'
+  | 'boleto'
+  | 'comprovante_pix'
+  | 'outro'
+
+export type TseProofStatus = 'comprovado' | 'pendente_doc' | 'em_analise' | 'divergente'
+
+export interface TseTransaction {
+  id: string
+  campaign_id: string
+  type: TseTransactionType
+  category: TseCategory
+  description: string
+  amount: number
+  transaction_date: string
+  document_number?: string
+  document_type?: TseDocumentType
+  party_name: string
+  party_document?: string
+  proof_status: TseProofStatus
+  receipt_file?: string
+  notes?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
+
+export type TseDeliveryType =
+  | 'parcial'
+  | 'relatorio_72h'
+  | 'prestacao_final'
+  | 'abertura_conta'
+  | 'extrato_bancario'
+  | 'outro'
+
+export type TseDeliveryStatus = 'pendente' | 'em_andamento' | 'concluido' | 'em_atraso'
+
+export interface TseDelivery {
+  id: string
+  campaign_id: string
+  title: string
+  description?: string
+  legal_deadline: string
+  delivery_type: TseDeliveryType
+  status: TseDeliveryStatus
+  delivered_at?: string
+  protocol_number?: string
+  mandatory?: boolean
+  notes?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+  }
+}
