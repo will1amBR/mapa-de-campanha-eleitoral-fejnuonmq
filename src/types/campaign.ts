@@ -499,3 +499,30 @@ export interface AppNotification {
     campaign_id?: Campaign
   }
 }
+
+// 11. Field Team Reminders (Push Agendado para Equipe)
+export type FieldReminderAudience = 'all_team' | 'coordinators_only' | 'field_only' | 'custom'
+export type FieldReminderStatus = 'scheduled' | 'sent' | 'cancelled'
+
+export interface FieldReminder {
+  id: string
+  campaign_id: string
+  title: string
+  message: string
+  event_date: string
+  location_name?: string
+  lead_time_minutes?: number
+  target_audience: FieldReminderAudience
+  target_users?: string[]
+  status: FieldReminderStatus
+  sent_at?: string
+  dispatched_count?: number
+  created_by?: string
+  created: string
+  updated: string
+  expand?: {
+    campaign_id?: Campaign
+    created_by?: UserRecord
+    target_users?: UserRecord[]
+  }
+}

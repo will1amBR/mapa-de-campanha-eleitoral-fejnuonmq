@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { useCampaign } from '@/hooks/use-campaign'
 import type { UtmVisit, AdCampaign, AdPlatform, AdStatus } from '@/types/campaign'
@@ -27,6 +28,7 @@ import {
   Share2,
   Globe,
   Radio,
+  ArrowRight,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -95,6 +97,7 @@ interface GeneratedLink {
 
 export const CampaignTrackingPage: React.FC = () => {
   const { currentCampaign } = useCampaign()
+  const navigate = useNavigate()
 
   // Tab 1: UTM Generator State
   const [baseUrl, setBaseUrl] = useState('https://campanhavitoria.com.br')
@@ -482,7 +485,16 @@ export const CampaignTrackingPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button
+            onClick={() => navigate('/roi-ads')}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-9 px-3.5 shadow-md flex items-center gap-1.5"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Relatório de ROI & Custo por Voto
+            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+          </Button>
+
           <Badge
             variant="outline"
             className="text-amber-400 border-slate-700 bg-slate-800/80 text-xs px-3 py-1.5 font-semibold"

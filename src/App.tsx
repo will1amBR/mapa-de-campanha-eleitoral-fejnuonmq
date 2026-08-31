@@ -24,6 +24,8 @@ import { CampaignTrackingPage } from '@/pages/CampaignTrackingPage'
 import { DebatePrepPage } from '@/pages/DebatePrepPage'
 import { PollsTrackingPage } from '@/pages/PollsTrackingPage'
 import { CampaignsComparisonPage } from '@/pages/CampaignsComparisonPage'
+import { FieldRemindersPage } from '@/pages/FieldRemindersPage'
+import { AdsRoiPage } from '@/pages/AdsRoiPage'
 import { useUtmTracking } from '@/hooks/use-utm-tracking'
 import { useCampaign } from '@/hooks/use-campaign'
 
@@ -69,6 +71,8 @@ const App = () => (
               <Route path="/candidates" element={<CandidatesPage />} />
               <Route path="/content-calendar" element={<ContentCalendarPage />} />
               <Route path="/campaign-tracking" element={<CampaignTrackingPage />} />
+              <Route path="/roi-ads" element={<AdsRoiPage />} />
+              <Route path="/field-reminders" element={<FieldRemindersPage />} />
               <Route path="/map" element={<LiveMapPage />} />
               <Route path="/team" element={<TeamFieldPage />} />
               <Route path="/team-performance" element={<TeamPerformancePage />} />

@@ -19,6 +19,10 @@ import {
   Check,
   AlertCircle,
   Send,
+  Database,
+  Key,
+  Globe,
+  Sparkles,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -61,6 +65,15 @@ export const SettingsPage: React.FC = () => {
   const [targetVotes, setTargetVotes] = useState(300000)
   const [color, setColor] = useState('#F59E0B')
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false)
+
+  // Premium Electoral Data Provider Extension Configuration
+  const [premiumProviderUrl, setPremiumProviderUrl] = useState(
+    () => localStorage.getItem('estrategista_premium_tse_url') || '',
+  )
+  const [premiumProviderKey, setPremiumProviderKey] = useState(
+    () => localStorage.getItem('estrategista_premium_tse_key') || '',
+  )
+  const [isSavingProvider, setIsSavingProvider] = useState(false)
 
   const handleTogglePush = async () => {
     if (!webPushService.isSupported()) {
@@ -372,6 +385,117 @@ export const SettingsPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Premium Electoral Data Provider Integration (TSE / Paid Provider Extension) */}
+      <Card className="border-slate-800 bg-slate-900 text-white shadow-md">
+        <CardHeader className="border-b border-slate-800 p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                  Provedor de Dados Eleitorais & TSE
+                  <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">
+                    Extensível
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Integração oficial gratuita com DivulgaCand TSE e ponto de extensão para
+                  provedores pagos.
+                </CardDescription>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <span className="text-[11px] text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-1 rounded font-mono font-bold inline-flex items-center gap-1">
+                <Check className="w-3 h-3" /> Base TSE SP Conectada
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-2">
+            <div className="font-bold text-white flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              Como funciona a sincronização automática:
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Por padrão, o Estrategista Eleitoral se conecta à API aberta do TSE
+              (DivulgaCand/Contas) e à base estruturada oficial com upsert automático por número de
+              urna, ano e cargo. Se você contratar uma API privada ou empresa de Big Data eleitoral
+              parceira, insira o endpoint e chave de acesso abaixo.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-blue-400" /> Endpoint / URL da API do Provedor
+              </Label>
+              <Input
+                placeholder="Ex: https://api.dados-eleitorais-premium.com.br/v1/candidatos"
+                value={premiumProviderUrl}
+                onChange={(e) => setPremiumProviderUrl(e.target.value)}
+                className="h-9 text-xs bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-600"
+              />
+              <span className="text-[10px] text-slate-500">
+                Deixe em branco para usar a API oficial gratuita do TSE.
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1">
+                <Key className="w-3.5 h-3.5 text-amber-400" /> Chave de Acesso / API Token
+              </Label>
+              <Input
+                type="password"
+                placeholder="Ex: sec_live_tse_..."
+                value={premiumProviderKey}
+                onChange={(e) => setPremiumProviderKey(e.target.value)}
+                className="h-9 text-xs bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-600 font-mono"
+              />
+              <span className="text-[10px] text-slate-500">
+                Token de autenticação fornecido pelo seu provedor parceiro.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
+            <span className="text-[11px] text-slate-400">
+              Provedor ativo:{' '}
+              <strong className="text-amber-400">
+                {premiumProviderUrl && premiumProviderKey
+                  ? 'Provedor Pago Personalizado'
+                  : 'TSE Aberto DivulgaCand (Oficial Gratuito)'}
+              </strong>
+            </span>
+
+            <Button
+              onClick={() => {
+                setIsSavingProvider(true)
+                if (premiumProviderUrl.trim() && premiumProviderKey.trim()) {
+                  localStorage.setItem('estrategista_premium_tse_url', premiumProviderUrl.trim())
+                  localStorage.setItem('estrategista_premium_tse_key', premiumProviderKey.trim())
+                  localStorage.setItem('estrategista_premium_tse_name', 'Provedor Premium Custom')
+                  toast.success('Configurações do Provedor Salvas!')
+                } else {
+                  localStorage.removeItem('estrategista_premium_tse_url')
+                  localStorage.removeItem('estrategista_premium_tse_key')
+                  localStorage.setItem('estrategista_premium_tse_name', 'TSE Oficial (Gratuito)')
+                  toast.info('Restaurado para conexão oficial gratuita do TSE.')
+                }
+                setTimeout(() => setIsSavingProvider(false), 300)
+              }}
+              disabled={isSavingProvider}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3"
+            >
+              {isSavingProvider ? 'Salvando...' : 'Salvar Provedor'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Multi-Campaign Management Section */}
       <Card className="border-slate-200/80 shadow-sm bg-white">

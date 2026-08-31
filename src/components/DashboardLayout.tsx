@@ -24,6 +24,8 @@ import {
   CheckCheck,
   ExternalLink,
   Check,
+  BellRing,
+  DollarSign,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { useCampaign } from '@/hooks/use-campaign'
@@ -182,6 +184,12 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       items: [
         { to: '/team', label: 'Equipes & Atividades', icon: Users, badge: 'Aba 08' },
         {
+          to: '/field-reminders',
+          label: 'Lembretes Push Equipe',
+          icon: BellRing,
+          badge: 'Push',
+        },
+        {
           to: '/ranking',
           label: 'Ranking & Gamificação',
           icon: Trophy,
@@ -197,8 +205,8 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       ],
     },
     {
-      title: '03 CAMPO',
-      subtitle: 'Rastreamento, trajetos e cobertura',
+      title: '03 CAMPO & ADS',
+      subtitle: 'Rastreamento, trajetos e ROI de anúncios',
       items: [
         { to: '/map', label: 'Mapa Geral & Ao Vivo', icon: MapPin, badge: 'Aba 01/03' },
         {
@@ -206,6 +214,12 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           label: 'Cobertura & UTM Tracking',
           icon: BarChart3,
           badge: 'Aba 04',
+        },
+        {
+          to: '/roi-ads',
+          label: 'ROI & Custo por Voto',
+          icon: DollarSign,
+          badge: 'ROI ADS',
         },
         { to: '/content-calendar', label: 'Calendário de Redes', icon: Calendar, badge: 'Digital' },
       ],

@@ -29,6 +29,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { tseApiService } from '@/services/tseApi'
+import { RefreshCw, Database } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -72,6 +75,13 @@ export const CandidatesPage: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
   const [isUpdatingLink, setIsUpdatingLink] = useState(false)
+
+  // TSE Sync State
+  const [isSyncingTse, setIsSyncingTse] = useState(false)
+  const [syncProgress, setSyncProgress] = useState(0)
+  const [syncStatusText, setSyncStatusText] = useState('')
+  const [syncResultModalOpen, setSyncResultModalOpen] = useState(false)
+  const [syncResultMsg, setSyncResultMsg] = useState('')
 
   // Fetch candidates with server filtering
   const fetchCandidates = async () => {
@@ -230,6 +240,37 @@ export const CandidatesPage: React.FC = () => {
     )
   }
 
+  const handleSyncTse = async () => {
+    try {
+      setIsSyncingTse(true)
+      setSyncProgress(5)
+      setSyncStatusText('Iniciando conexão com a base do TSE...')
+
+      const res = await tseApiService.syncCandidates(
+        currentCampaign?.id,
+        { uf: 'SP', year: yearFilter !== 'ALL' ? yearFilter : '2024' },
+        (progress, status) => {
+          setSyncProgress(progress)
+          setSyncStatusText(status)
+        },
+      )
+
+      if (res.success) {
+        toast.success(res.message)
+        setSyncResultMsg(res.message)
+        setSyncResultModalOpen(true)
+        fetchCandidates()
+      } else {
+        toast.error(res.message || 'Erro durante sincronização')
+      }
+    } catch (err: any) {
+      console.error('Error during TSE sync:', err)
+      toast.error('Falha ao conectar com o serviço do TSE')
+    } finally {
+      setIsSyncingTse(false)
+    }
+  }
+
   const totalPages = Math.ceil(totalCount / perPage) || 1
 
   return (
@@ -254,13 +295,43 @@ export const CandidatesPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-slate-800/90 border border-slate-700 p-2.5 sm:p-4 rounded-xl text-left sm:text-right w-full sm:w-auto shrink-0 flex sm:flex-col justify-between items-center sm:items-end">
-          <div className="text-xs text-slate-400 font-medium sm:order-2">total de candidaturas</div>
-          <div className="text-lg sm:text-2xl font-black text-amber-400 sm:order-1">
-            {totalCount.toLocaleString('pt-BR')}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
+          <div className="bg-slate-800/90 border border-slate-700 p-2.5 sm:p-3.5 rounded-xl text-left sm:text-right flex sm:flex-col justify-between items-center sm:items-end">
+            <div className="text-[11px] text-slate-400 font-medium sm:order-2">total no banco</div>
+            <div className="text-base sm:text-xl font-black text-amber-400 sm:order-1">
+              {totalCount.toLocaleString('pt-BR')}
+            </div>
           </div>
+
+          <Button
+            onClick={handleSyncTse}
+            disabled={isSyncingTse}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm h-11 px-3.5 shadow-md flex items-center justify-center gap-1.5"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncingTse ? 'animate-spin' : ''}`} />
+            {isSyncingTse ? 'Sincronizando...' : 'Sincronizar com TSE'}
+          </Button>
         </div>
       </div>
+
+      {/* Sync Progress Live Indicator */}
+      {isSyncingTse && (
+        <Card className="border-amber-500/40 bg-amber-500/10 shadow-sm animate-pulse">
+          <CardContent className="p-3.5 sm:p-4 space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+              <span className="flex items-center gap-1.5">
+                <Database className="w-4 h-4 text-amber-600 animate-spin" />
+                {syncStatusText}
+              </span>
+              <span className="font-mono text-amber-700">{syncProgress}%</span>
+            </div>
+            <Progress value={syncProgress} className="h-2 bg-amber-200" />
+            <p className="text-[11px] text-slate-600">
+              Cruzando dados com a base oficial do TSE e atualizando registros de candidatos de SP.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filter and Search Bar */}
       <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">

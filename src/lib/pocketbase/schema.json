@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T13:16:38.365Z",
+  "generatedAt": "2026-08-31T15:32:51.650Z",
   "collections": [
     {
       "name": "users",
@@ -2023,6 +2023,115 @@
         "CREATE INDEX idx_push_sub_user ON push_subscriptions (user_id)",
         "CREATE INDEX idx_push_sub_camp ON push_subscriptions (campaign_id)",
         "CREATE INDEX idx_push_sub_active ON push_subscriptions (is_active)"
+      ]
+    },
+    {
+      "name": "field_reminders",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "location_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lead_time_minutes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_audience",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["all_team", "coordinators_only", "field_only", "custom"]
+        },
+        {
+          "name": "target_users",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["scheduled", "sent", "cancelled"]
+        },
+        {
+          "name": "sent_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dispatched_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created_by",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_field_reminders_camp ON field_reminders (campaign_id)",
+        "CREATE INDEX idx_field_reminders_status ON field_reminders (status)",
+        "CREATE INDEX idx_field_reminders_event_date ON field_reminders (event_date)"
       ]
     }
   ]
